@@ -1,0 +1,21 @@
+.vertical-center-modal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vertical-center-modal .ivu-modal {
+  top: 0;
+}
+
+.demo-spin-icon-load{
+  animation: ani-demo-spin 1s linear infinite;
+}
+
+html::-webkit-scrollbar {
+  display: none;
+}
+
+.ivu-progress-bg {
+  background-color: rgb(115, 243, 110);
+}

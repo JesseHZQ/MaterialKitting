@@ -1,0 +1,423 @@
+<template>
+  <div>
+    <!-- 语音标签 -->
+    <div>
+      <div id="bdtts_div_id">
+        <audio id="tts_autio_id" autoplay="autoplay">
+          <source id="tts_source_id" src="" type="audio/mpeg">
+          <embed id="tts_embed_id" height="0" width="0" src="">
+        </audio>
+      </div>
+    </div>
+
+    <div v-for="(it, index) in AllList" :key="index">
+      <Divider>{{ it.item }}</Divider>
+      <div style="overflow: scroll;" class="hidebar">
+        <div :style="{ width: it.width }" style="padding-top: 10px;">
+          <Card style="background: linear-gradient(#73f36e , #3ca248); color: #fff; position: relative;" v-for="item in it.data.filter(i => i.AssignDate && !i.EnsureDate)" :key="item.Id">
+            <p slot="title" style="color: #fff;">{{ item.SystemSlot }}</p>
+            <span slot="extra">Ready</span>
+            <div>
+              <table style="text-align: left;">
+                <tr style="height: 30px;">
+                  <td>PO Number：</td>
+                  <td>{{ item.PO }}</td>
+                </tr>
+                <tr style="height: 30px;">
+                  <td>Demand Time：</td>
+                  <td>{{ item.DemandDate ? tool.getFormatDate(item.DemandDate) : 'No Data' }}</td>
+                </tr>
+                <tr style="height: 30px;">
+                  <td>Rack Name：</td>
+                  <td>{{ item.RackName }}</td>
+                </tr>
+              </table>
+            </div>
+          </Card>
+          <Card style="background: linear-gradient(#6cd1ff , #0fa5e8); color: #fff; position: relative;" v-for="item in it.data.filter(i => i.StartDate && !i.AssignDate)" :key="item.Id">
+            <p slot="title" style="color: #fff;">{{ item.SystemSlot }}</p>
+            <span slot="extra">Kitting</span>
+            <div>
+              <table style="text-align: left;">
+                <tr style="height: 30px;">
+                  <td>PO Number：</td>
+                  <td>{{ item.PO }}</td>
+                </tr>
+                <tr style="height: 30px;">
+                  <td>Demand Time：</td>
+                  <td>{{ item.DemandDate ? tool.getFormatDate(item.DemandDate) : 'No Data' }}</td>
+                </tr>
+              </table>
+              <Tooltip placement="top" :content="item.longDate" style="width: 100%; z-index=999">
+                <Progress :percent="parseFloat((item.djs / 216000).toFixed(2)) > 100 ? 100 : parseFloat((item.djs / 216000).toFixed(2))" />
+              </Tooltip>
+            </div>
+          </Card>
+          <Card style="background: linear-gradient(#ffb916 , #ff8d27); color: #fff; position: relative;" v-for="(item, index) in it.data.filter(i => !i.StartDate)" :key="item.Id">
+            <img v-if="index == 0" class="rank" src="../assets/imgs/top1.png" alt="">
+            <img v-if="index == 1" class="rank" src="../assets/imgs/top2.png" alt="">
+            <img v-if="index == 2" class="rank" src="../assets/imgs/top3.png" alt="">
+            <p slot="title" style="color: #fff;">{{ item.SystemSlot }}</p>
+            <span slot="extra" class="">Not Start</span>
+            <div>
+              <table style="text-align: left;">
+                <tr style="height: 30px;">
+                  <td>PO Number：</td>
+                  <td>{{ item.PO }}</td>
+                </tr>
+                <tr style="height: 30px;">
+                  <td>Demand Time：</td>
+                  <td>{{ item.DemandDate ? tool.getFormatDate(item.DemandDate) : 'No Data' }}</td>
+                </tr>
+                <tr style="height: 30px;">
+                  <td>Kitting Duration：</td>
+                  <td>{{ item.longDate }}</td>
+                </tr>
+              </table>
+            </div>
+          </Card>
+        </div>
+      </div>
+      <img src="../assets/imgs/NoData.jpg" class="nodata" v-show="it.data.filter(i => !i.EnsureDate).length == 0" alt="">
+    </div>
+  </div>
+</template>
+
+<script>
+  import {
+    config,
+    helper
+  } from '../config/app.js';
+  export default {
+    name: 'TE',
+    data() {
+      return {
+        tool: helper,
+        timer: null, // 定时器Id
+        table: { // 主页的所有卡片数据
+          data: []
+        },
+        goeasy: null // goeasy对象
+      }
+    },
+
+    computed: {
+      AllList() {
+        return [
+          { 
+            item: 'Assy', 
+            data: this.table.data.filter(i => i.Station == 'Assy'),
+            width: this.table.data.filter(i => i.Station == 'Assy' && !i.EnsureDate).length * 320 + 'px'
+          },
+          { 
+            item: 'TE', 
+            data: this.table.data.filter(i => i.Station == 'TE'),
+            width: this.table.data.filter(i => i.Station == 'TE' && !i.EnsureDate).length * 320 + 'px'
+          },
+          { 
+            item: 'Button Up', 
+            data: this.table.data.filter(i => i.Station == 'Button Up'),
+            width: this.table.data.filter(i => i.Station == 'Button Up' && !i.EnsureDate).length * 320 + 'px'
+          },
+          { 
+            item: 'FP', 
+            data: this.table.data.filter(i => i.Station == 'FP'),
+            width: this.table.data.filter(i => i.Station == 'FP' && !i.EnsureDate).length * 320 + 'px'
+          }, 
+        ]
+      }
+    },
+
+    created() {
+      this.getSystemList()
+      this.initWebInfo()
+      this.getBaiduToken()
+    },
+
+    methods: {
+      // 获取百度云的token
+      getBaiduToken() {
+        // this.$http.get(config.baseUrl + 'systeminfo/getBaiduToken').then(res => {
+          // this.baiduToken = JSON.parse(res.body)['access_token']
+          this.baiduToken = '24.4428f00e8993ce422e7d567ad1111281.2592000.1544852920.282335-14547213' // 2018-11-15
+        // })
+      },
+
+      // 语音方法
+      doTTS(text) {
+        var ttsDiv = document.getElementById('bdtts_div_id');
+        var ttsAudio = document.getElementById('tts_autio_id');
+        // 这样就可实现播放内容的替换了
+        ttsDiv.removeChild(ttsAudio);
+        var au1 = '<audio id="tts_autio_id" autoplay="autoplay">';
+        var sss = `<source id="tts_source_id" src="http://tsn.baidu.com/text2audio?tex=${text}&lan=zh&per=0&cuid=888&ctp=1&tok=${this.baiduToken}" type="audio/mpeg">`;
+        var eee = '<embed id="tts_embed_id" height="0" width="0" src="">';
+        var au2 = '</audio>';
+        ttsDiv.innerHTML = au1 + sss + eee + au2;
+        ttsAudio = document.getElementById('tts_autio_id');
+        ttsAudio.play();
+      },
+
+      // 实现计时功能
+      getLongDate(list) {
+        var that = this;
+        clearInterval(this.timer)
+        list.forEach(i => {
+          if (!i.StartDate) {
+            i.longDate = 'No Data'
+          } else {
+            if (i.AssignDate) {
+              i.longDate = new Date(i.AssignDate) - new Date(i.StartDate)
+              var h = parseInt(i.longDate / 1000 / 60 / 60)
+              var m = parseInt(i.longDate / 1000 / 60 % 60)
+              var s = parseInt(i.longDate / 1000 % 60)
+              h = h.toString().length > 1 ? h.toString() : ('0' + h.toString())
+              m = m.toString().length > 1 ? m.toString() : ('0' + m.toString())
+              s = s.toString().length > 1 ? s.toString() : ('0' + s.toString())
+              i.longDate = h + ':' + m + ':' + s
+            } else {
+              var a = this.$moment.utc()
+              var b = this.$moment.utc(i.StartDate)
+              i.djs = i.longDate = this.$moment.utc() - this.$moment.utc(this.$moment(i.StartDate))
+              var h = parseInt(i.longDate / 1000 / 60 / 60)
+              var m = parseInt(i.longDate / 1000 / 60 % 60)
+              var s = parseInt(i.longDate / 1000 % 60)
+              h = h.toString().length > 1 ? h.toString() : ('0' + h.toString())
+              m = m.toString().length > 1 ? m.toString() : ('0' + m.toString())
+              s = s.toString().length > 1 ? s.toString() : ('0' + s.toString())
+              i.longDate = h + ':' + m + ':' + s
+            }
+          }
+        })
+        that.table.data = list;
+        this.table.data.splice(0, 0)
+        this.timer = setInterval(_ => {
+          list.forEach(i => {
+            if (!i.StartDate) {
+              i.longDate = 'No Data'
+            } else {
+              if (i.AssignDate) {
+                i.longDate = new Date(i.AssignDate) - new Date(i.StartDate)
+                var h = parseInt(i.longDate / 1000 / 60 / 60)
+                var m = parseInt(i.longDate / 1000 / 60 % 60)
+                var s = parseInt(i.longDate / 1000 % 60)
+                h = h.toString().length > 1 ? h.toString() : ('0' + h.toString())
+                m = m.toString().length > 1 ? m.toString() : ('0' + m.toString())
+                s = s.toString().length > 1 ? s.toString() : ('0' + s.toString())
+                i.longDate = h + ':' + m + ':' + s
+              } else {
+                i.djs = i.longDate = this.$moment.utc() - this.$moment.utc(this.$moment(i.StartDate))
+                var h = parseInt(i.longDate / 1000 / 60 / 60)
+                var m = parseInt(i.longDate / 1000 / 60 % 60)
+                var s = parseInt(i.longDate / 1000 % 60)
+                h = h.toString().length > 1 ? h.toString() : ('0' + h.toString())
+                m = m.toString().length > 1 ? m.toString() : ('0' + m.toString())
+                s = s.toString().length > 1 ? s.toString() : ('0' + s.toString())
+                i.longDate = h + ':' + m + ':' + s
+              }
+            }
+          })
+          that.table.data = list;
+          this.table.data.splice(0, 0)
+        }, 1000)
+      },
+
+      // 获取对应type的系统信息
+      getSystemList() {
+        this.$http.get(config.baseUrl + 'systeminfo/getTypedSystem?type=all').then(res => {
+          this.table.data = res.body.Data || []
+          this.getLongDate(this.table.data)
+        })
+      },
+
+      // 初始化websocket
+      initWebInfo() {
+        this.goeasy = new GoEasy({
+          appkey: 'BC-49ce6073260241339c70c7e597cee303'
+        });
+
+        // 注册接受备料通知的channel
+        this.goeasy.subscribe({
+          channel: 'te2mc-inform',
+          onMessage: message => {
+            this.getSystemList()
+            this.doTTS('こんにちは' + message.content + message.content)
+            this.$Notice.open({
+              title: '新的备料通知',
+              desc: message.content,
+              duration: 5
+            });
+          }
+        });
+
+        // 注册撤销备料通知的channel
+        this.goeasy.subscribe({
+          channel: 'te2mc-revoke',
+          onMessage: message => {
+            this.getSystemList()
+            this.doTTS(message.content + message.content)
+            this.$Notice.open({
+              title: '新的撤销备料通知',
+              desc: message.content,
+              duration: 5
+            });
+          }
+        });
+
+        // 注册备料变更通知的channel
+        this.goeasy.subscribe({
+          channel: 'te2mc-update',
+          onMessage: message => {
+            this.getSystemList()
+            this.doTTS(message.content + message.content)
+            this.$Notice.open({
+              title: '新的备料备料通知',
+              desc: message.content,
+              duration: 5
+            });
+          }
+        });
+
+        // 注册接受备料通知的channel
+        this.goeasy.subscribe({
+          channel: 'te2mc-ensure',
+          onMessage: message => {
+            this.getSystemList()
+            this.doTTS(message.content + message.content)
+            this.$Notice.open({
+              title: '新的确认收料通知',
+              desc: message.content,
+              duration: 5
+            });
+          }
+        });
+
+        // 接收MC通知TE--备料开始
+        this.goeasy.subscribe({
+          channel: 'mc2te-begin',
+          onMessage: message => {
+            this.getSystemList()
+            this.doTTS(message.content)
+            this.$Notice.open({
+              title: '开始备料通知',
+              desc: message.content,
+              duration: 5
+            });
+          }
+        });
+
+        // 接收MC通知TE--备料结束
+        this.goeasy.subscribe({
+          channel: 'mc2te-finish',
+          onMessage: message => {
+            this.getSystemList()
+            this.doTTS(message.content + message.content)
+            this.$Notice.open({
+              title: '备料完成通知',
+              desc: message.content,
+              duration: 5
+            });
+          }
+        });
+      }
+    }
+  }
+
+</script>
+
+<style scoped>
+  .header {
+    height: 80px;
+    background-color: #282B35;
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    min-width: 1024px;
+    z-index: 99;
+  }
+
+  .header p {
+    line-height: 80px;
+    text-align: center;
+  }
+
+  span.label {
+    padding: 4px 8px;
+    /* background-color: #2d8cf0; */
+    border: 1px solid #fff;
+    border-radius: 4px;
+    color: #fff;
+  }
+
+  .nodata {
+    width: 250px; 
+    display: block;
+    margin: 0 auto;
+  }
+
+  .rank {
+    position: absolute;
+    left: -10px;
+    top: -20px;
+    width: 40px;
+  }
+
+  .hidebar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /deep/ .ivu-card {
+    float: left;
+    /* position: absolute; */
+    height: 185.4px;
+    width: 300px;
+    margin: 10px;
+    font-size: 16px;
+    min-width: 300px;
+  }
+
+  /deep/ .ivu-tabs-bar {
+    margin-bottom: 0;
+  }
+
+  /deep/ .demo-spin-icon-load{
+    animation: ani-demo-spin 1s linear infinite;
+  }
+
+  /deep/ .ivu-table-cell {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  /deep/ .ivu-table-small td {
+    height: unset;
+  }
+
+  /deep/ .ivu-table {
+    font-size: 10px;
+  }
+
+  /deep/ .ivu-table td, .ivu-table th {
+    height: unset;
+  }
+
+  /deep/ .ivu-card-head p {
+    font-size: 18px;
+  }
+
+  /deep/ .ivu-progress-show-info .ivu-progress-outer {
+    padding-right: 80px;
+    margin-right: -80px;
+  }
+
+  /deep/ .ivu-progress-text {
+    font-size: 16px;
+  }
+
+  /deep/ .ivu-progress-bg {
+    height: 12px !important;
+  }
+
+</style>
