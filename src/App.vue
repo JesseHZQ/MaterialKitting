@@ -1,6 +1,7 @@
 <template>
   <div id="app" class="hidebar">
     <div class="header">
+      <img style="float: left; height: 60px; margin-left: 20px; margin-top: 10px;" src="./assets/imgs/Flex_RGB_Med_tm.png" alt="">
       <p>
         <span>BU7 Material Kitting KanBan System</span>
         <span style="float: right; margin-right: 20px; font-size: 12px;">
@@ -11,6 +12,11 @@
       </p>
     </div>
     <router-view class="content"/>
+    <div style="margin-top: 20px; padding: 10px 0; border-top: 1px solid #ccc; text-align: center">
+      <p>Copyright 2018 flex Suzhou BU7 FCT</p>
+      <!-- <p>Comments or Suggestion please contact <a href="mailto:Jesse.He@flex.com">Jesse.He@flex.com</a></p> -->
+      <p>Comments or Suggestion please contact <a href="mailto:Jesse.He@flex.com">us</a> (click to email us)</p>
+    </div>
   </div>
 </template>
 

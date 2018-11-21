@@ -14,37 +14,41 @@
       <Divider>{{ it.item }}</Divider>
       <div style="overflow: scroll;" class="hidebar">
         <div :style="{ width: it.width }" style="padding-top: 10px;">
-          <Card style="background: linear-gradient(#73f36e , #3ca248); color: #fff; position: relative;" v-for="item in it.data.filter(i => i.AssignDate && !i.EnsureDate)" :key="item.Id">
+          <!-- background: linear-gradient(#73f36e , #3ca248); 绿色 -->
+          <!-- background: linear-gradient(#6cd1ff , #0fa5e8); 蓝色 -->
+          <!-- background: linear-gradient(#ffb916 , #ff8d27); 黄色 -->
+
+          <Card class="ready" style="backgroundColor: #1f8300; color: #fff; position: relative;" v-for="item in it.data.filter(i => i.AssignDate && !i.EnsureDate)" :key="item.Id">
             <p slot="title" style="color: #fff;">{{ item.SystemSlot }}</p>
             <span slot="extra">Ready</span>
-            <div>
+            <div style="background: #fff; color: #222;">
               <table style="text-align: left;">
                 <tr style="height: 30px;">
-                  <td>PO Number：</td>
+                  <td>PO#：</td>
                   <td>{{ item.PO }}</td>
                 </tr>
                 <tr style="height: 30px;">
-                  <td>Demand Time：</td>
+                  <td>Expect：</td>
                   <td>{{ item.DemandDate ? tool.getFormatDate(item.DemandDate) : 'No Data' }}</td>
                 </tr>
                 <tr style="height: 30px;">
-                  <td>Rack Name：</td>
+                  <td>Rack Loc#：</td>
                   <td>{{ item.RackName }}</td>
                 </tr>
               </table>
             </div>
           </Card>
-          <Card style="background: linear-gradient(#6cd1ff , #0fa5e8); color: #fff; position: relative;" v-for="item in it.data.filter(i => i.StartDate && !i.AssignDate)" :key="item.Id">
+          <Card class="kitting" style="backgroundColor: #0254b9; color: #fff; position: relative;" v-for="item in it.data.filter(i => i.StartDate && !i.AssignDate)" :key="item.Id">
             <p slot="title" style="color: #fff;">{{ item.SystemSlot }}</p>
             <span slot="extra">Kitting</span>
-            <div>
+            <div style="background: #fff; color: #222;">
               <table style="text-align: left;">
                 <tr style="height: 30px;">
-                  <td>PO Number：</td>
+                  <td>PO#：</td>
                   <td>{{ item.PO }}</td>
                 </tr>
                 <tr style="height: 30px;">
-                  <td>Demand Time：</td>
+                  <td>Expect：</td>
                   <td>{{ item.DemandDate ? tool.getFormatDate(item.DemandDate) : 'No Data' }}</td>
                 </tr>
               </table>
@@ -53,24 +57,24 @@
               </Tooltip>
             </div>
           </Card>
-          <Card style="background: linear-gradient(#ffb916 , #ff8d27); color: #fff; position: relative;" v-for="(item, index) in it.data.filter(i => !i.StartDate)" :key="item.Id">
+          <Card class="notstart" style="backgroundColor: rgb(255, 153, 0); color: #fff; position: relative;" v-for="(item, index) in it.data.filter(i => !i.StartDate)" :key="item.Id">
             <img v-if="index == 0" class="rank" src="../assets/imgs/top1.png" alt="">
             <img v-if="index == 1" class="rank" src="../assets/imgs/top2.png" alt="">
             <img v-if="index == 2" class="rank" src="../assets/imgs/top3.png" alt="">
             <p slot="title" style="color: #fff;">{{ item.SystemSlot }}</p>
             <span slot="extra" class="">Not Start</span>
-            <div>
+            <div style="background: #fff; color: #222;">
               <table style="text-align: left;">
                 <tr style="height: 30px;">
-                  <td>PO Number：</td>
+                  <td>PO#：</td>
                   <td>{{ item.PO }}</td>
                 </tr>
                 <tr style="height: 30px;">
-                  <td>Demand Time：</td>
+                  <td>Expect：</td>
                   <td>{{ item.DemandDate ? tool.getFormatDate(item.DemandDate) : 'No Data' }}</td>
                 </tr>
                 <tr style="height: 30px;">
-                  <td>Kitting Duration：</td>
+                  <td>Duration：</td>
                   <td>{{ item.longDate }}</td>
                 </tr>
               </table>
@@ -105,12 +109,12 @@
       AllList() {
         return [
           { 
-            item: 'Assy', 
+            item: 'Option Integration', 
             data: this.table.data.filter(i => i.Station == 'Assy'),
             width: this.table.data.filter(i => i.Station == 'Assy' && !i.EnsureDate).length * 320 + 'px'
           },
           { 
-            item: 'TE', 
+            item: 'System Testing', 
             data: this.table.data.filter(i => i.Station == 'TE'),
             width: this.table.data.filter(i => i.Station == 'TE' && !i.EnsureDate).length * 320 + 'px'
           },
@@ -120,7 +124,7 @@
             width: this.table.data.filter(i => i.Station == 'Button Up' && !i.EnsureDate).length * 320 + 'px'
           },
           { 
-            item: 'FP', 
+            item: 'Final Process', 
             data: this.table.data.filter(i => i.Station == 'FP'),
             width: this.table.data.filter(i => i.Station == 'FP' && !i.EnsureDate).length * 320 + 'px'
           }, 
@@ -241,7 +245,7 @@
           channel: 'te2mc-inform',
           onMessage: message => {
             this.getSystemList()
-            this.doTTS('こんにちは' + message.content + message.content)
+            this.doTTS(message.content + message.content)
             this.$Notice.open({
               title: '新的备料通知',
               desc: message.content,
@@ -418,6 +422,46 @@
 
   /deep/ .ivu-progress-bg {
     height: 12px !important;
+  }
+
+  /deep/ .ivu-card-body {
+    background-color: #fff;
+    margin-top: -1px;
+    height: 133px;
+    font-weight: 700;
+    /* margin: 0 1px; */
+  }
+
+  /deep/ .ready .ivu-card-body {
+    border-left: 1px solid #1f8300;
+    border-right: 1px solid #1f8300;
+    border-bottom: 1px solid #1f8300;
+  }
+
+  /deep/ .kitting .ivu-card-body {
+    border-left: 1px solid #0254b9;
+    border-right: 1px solid #0254b9;
+    border-bottom: 1px solid #0254b9;
+  }
+
+  /deep/ .notstart .ivu-card-body {
+    border-left: 1px solid rgb(255, 153, 0);
+    border-right: 1px solid rgb(255, 153, 0);
+    border-bottom: 1px solid rgb(255, 153, 0);
+  }
+
+  /deep/ .ivu-divider-inner-text {
+    font-size: 24px;
+    font-weight: 700;
+    padding: 10px 0;
+    background-color: #007dc1;
+    border-radius: 10px;
+    color: #fff;
+    width: 240px;
+  }
+
+  /deep/ .ivu-divider-horizontal.ivu-divider-with-text-center:after, .ivu-divider-horizontal.ivu-divider-with-text-center:before, .ivu-divider-horizontal.ivu-divider-with-text-left:after, .ivu-divider-horizontal.ivu-divider-with-text-left:before, .ivu-divider-horizontal.ivu-divider-with-text-right:after, .ivu-divider-horizontal.ivu-divider-with-text-right:before {
+    border-top: 1px dashed #007dc1;
   }
 
 </style>

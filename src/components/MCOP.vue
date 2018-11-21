@@ -13,7 +13,7 @@
     <Divider>TBD</Divider>
     <Table class="normal" border size="small" :columns="table.column1" :data="waitForStart"></Table>
 
-    <Divider>On-Going</Divider>
+    <Divider>W/H Kitting</Divider>
     <Table class="normal" border size="small" :columns="table.column2" :data="alreadyStart"></Table>
 
     <Divider>To Be Assigned</Divider>
@@ -1173,13 +1173,19 @@
         });
         this.$http.get(config.baseUrl + 'systeminfo/getPickList?po=' + item.PO).then(res => {
           this.$Spin.hide();
+          var sta = ''
           res.body.Data.forEach(i => {
             if (!i.Category) {
               i.Category = ''
             }
+            if (item.Station == 'FP') {
+              sta = 'MC'
+            } else {
+              sta = 'FP'
+            }
           })
           res.body.Data = res.body.Data.filter(i => {
-            return (i.Category.toUpperCase().indexOf(item.Station.toUpperCase()) > -1 ||
+            return (i.Category.toUpperCase().indexOf(sta.toUpperCase()) > -1 ||
               i.Category.toUpperCase() == '' ||
               i.Category.toUpperCase().indexOf('MIX') > -1)
           })
@@ -1632,9 +1638,9 @@
     height: unset;
   }
 
-  /deep/ .ivu-divider-horizontal.ivu-divider-with-text-center {
+  /* /deep/ .ivu-divider-horizontal.ivu-divider-with-text-center {
     margin-bottom: 0;
-  }
+  } */
 
   /deep/ .ivu-divider-inner-text {
     font-size: 18px;
@@ -1644,6 +1650,20 @@
   /deep/ .pnwrapper .ivu-input {
     height: 60px;
     font-size: 40px;
+  }
+
+  /deep/ .ivu-divider-inner-text {
+    font-size: 24px;
+    font-weight: 700;
+    padding: 10px 0;
+    background-color: #007dc1;
+    border-radius: 10px;
+    color: #fff;
+    width: 240px;
+  }
+
+  /deep/ .ivu-divider-horizontal.ivu-divider-with-text-center:after, .ivu-divider-horizontal.ivu-divider-with-text-center:before, .ivu-divider-horizontal.ivu-divider-with-text-left:after, .ivu-divider-horizontal.ivu-divider-with-text-left:before, .ivu-divider-horizontal.ivu-divider-with-text-right:after, .ivu-divider-horizontal.ivu-divider-with-text-right:before {
+    border-top: 1px dashed #007dc1;
   }
 
 </style>

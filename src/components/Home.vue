@@ -1,7 +1,8 @@
 <template>
   <div>
     <Table :loading="table.loading" size="small" border ref="table" :height="tableHeight" :columns="table.column" :data="table.data"></Table>
-    <!-- 信息提示Modal -->
+    
+    <!-- 编辑发送通知Modal -->
     <Modal :title="'Kitting Remind - ' + formValidate.SystemSlot" :loading="remindLoading" width="400" v-model="editShow" class-name="vertical-center-modal"
       @on-ok="submit">
       <Form ref="formValidate" :rules="ruleValidate" :model="formValidate" :label-width="70">
@@ -13,7 +14,7 @@
             placeholder="Select Demand Date"></DatePicker>
         </FormItem>
         <FormItem label="Station:" prop="Station">
-          <Select v-model="formValidate.Station" style="width:300px">
+          <Select v-model="formValidate.Station" disabled style="width:300px">
             <Option value="Assy" key="1">Assy</Option>
             <Option value="TE" key="2">TE</Option>
             <Option value="Button Up" key="3">Button Up</Option>
@@ -25,16 +26,13 @@
         </FormItem>
       </Form>
     </Modal>
+    
     <!-- 撤销确认Modal -->
     <Modal title="Warning" width="400" v-model="deleteShow" @on-ok="deleteHandler" class-name="vertical-center-modal">
       <p>确定要撤销通知吗？</p>
     </Modal>
 
-    <!-- <Modal title="Warning" width="400" v-model="ensureShow" @on-ok="ensureHandler" class-name="vertical-center-modal">
-      <p>确定备料准确无误吗？</p>
-    </Modal> -->
-
-    <!-- view框 -->
+    <!-- 确认收料框 -->
     <Modal v-model="viewModal" width="945" ok-text="收料完成" @on-ok="ensureHandler" title="Material Ensurance Info">
       <p>料在Rack："{{ ensureId ? originalData.find(i => i.Id == ensureId).RackName : '' }}" 上，确定备料准确无误吗？</p>
       <div style="text-align: center; font-size: 18px; font-weight: 700; margin-bottom: 10px;">Teradyne Operation Pick
@@ -42,17 +40,16 @@
       <Table class="picktab" border :columns="checkList.column" :data="checkList.data"></Table>
     </Modal>
 
-    <Modal
-      width="400"
-      v-model="nameModal"
-      title="Login"
-      @on-ok="login">
-      <Input v-model="userName" placeholder="Enter your emp#" />
+    <!-- 浏览Picklist框 -->
+    <Modal v-model="vmodal" width="945" title="Picklist Info">
+      <div style="text-align: center; font-size: 18px; font-weight: 700; margin-bottom: 10px;">Teradyne Operation Pick
+        List</div>
+      <Table class="picktab" border :columns="checkList.column" :data="checkList.data"></Table>
     </Modal>
 
-    <!-- <Modal title="Warning" width="400" v-model="ensureShow" @on-ok="ensureHandler" class-name="vertical-center-modal">
-      <p>料在Rack："{{ originalData.find(i => i.Id == ensureId).RackName }}" 上，确定备料准确无误吗？</p>
-    </Modal> -->
+    <Modal width="400" v-model="nameModal" title="Login" @on-ok="login">
+      <Input v-model="userName" placeholder="Enter your emp#" />
+    </Modal>
   </div>
 </template>
 
@@ -67,9 +64,9 @@
       return {
         tableHeight: 0, // 表格高度
         userName: '',
-        buttonLoading: false,
         nameModal: false,
         viewModal: false,
+        vmodal: false,
         checkList: { // 预览的表格对象
           data: [],
           column: [
@@ -164,7 +161,6 @@
             },
             {
               title: 'Checker',
-              // width: 45,
               align: 'center',
               render: (h,params) => {
                 if (!params.row['Checker']) {
@@ -182,7 +178,6 @@
                           var o = this.checkList.data.find(i => i.Component == params.row['Component'] && i['Item Number'] == params.row['Item Number'])
                           o['Checker'] = localStorage.getItem('kittingUser')
                           var a = this.ensureId
-                          debugger
                           this.$http.post(config.baseUrl + 'systeminfo/updatePickList', {
                             id: this.ensureId,
                             str: JSON.stringify(this.checkList.data)
@@ -318,7 +313,7 @@
 
     mounted() {
       // 自适应计算表格高度
-      this.tableHeight = window.innerHeight - this.$refs.table.$el.offsetTop
+      this.tableHeight = window.innerHeight - this.$refs.table.$el.offsetTop - 76
     },
 
     created() {
