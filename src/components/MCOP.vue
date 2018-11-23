@@ -1181,7 +1181,7 @@
             if (item.Station == 'FP') {
               sta = 'MC'
             } else {
-              sta = 'FP'
+              sta = item.Station // 11/22改的BUG 只出现FP
             }
           })
           res.body.Data = res.body.Data.filter(i => {

@@ -69,10 +69,12 @@ const helper = {
             if (params.row.PO) {
               that.isEdit = false;
               that.editShow = true;
+              that.$refs['formValidate'].resetFields()
               that.formValidate.RequireDate = new Date();
               that.formValidate.Station = station;
               that.formValidate.SystemSlot = params.row.SystemSlot;
               that.formValidate.PO = params.row.PO;
+              that.formValidate.RequestorId = '';
               that.formValidate.Remark = '';
             } else {
               that.$Message.error({

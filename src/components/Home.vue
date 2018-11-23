@@ -1,10 +1,10 @@
 <template>
   <div>
     <Table :loading="table.loading" size="small" border ref="table" :height="tableHeight" :columns="table.column" :data="table.data"></Table>
-    
+
     <!-- 编辑发送通知Modal -->
-    <Modal :title="'Kitting Remind - ' + formValidate.SystemSlot" :loading="remindLoading" width="400" v-model="editShow" class-name="vertical-center-modal"
-      @on-ok="submit">
+    <Modal :title="'Kitting Remind - ' + formValidate.SystemSlot" :loading="remindLoading" width="400" v-model="editShow"
+      class-name="vertical-center-modal" @on-ok="submit">
       <Form ref="formValidate" :rules="ruleValidate" :model="formValidate" :label-width="70">
         <FormItem label="PO:">
           <Input v-model="formValidate.PO" disabled style="width:300px" />
@@ -21,12 +21,15 @@
             <Option value="FP" key="4">FP</Option>
           </Select>
         </FormItem>
+        <FormItem label="Requestor ID:" prop="RequestorId">
+          <Input v-model="formValidate.RequestorId" style="width:300px" />
+        </FormItem>
         <FormItem label="Remark:">
           <Input v-model="formValidate.Remark" type="textarea" :autosize="{ minRows: 2,maxRows: 10 }" placeholder="Input Remark"></Input>
         </FormItem>
       </Form>
     </Modal>
-    
+
     <!-- 撤销确认Modal -->
     <Modal title="Warning" width="400" v-model="deleteShow" @on-ok="deleteHandler" class-name="vertical-center-modal">
       <p>确定要撤销通知吗？</p>
@@ -69,8 +72,7 @@
         vmodal: false,
         checkList: { // 预览的表格对象
           data: [],
-          column: [
-            {
+          column: [{
               title: 'Line',
               align: 'center',
               width: 30,
@@ -162,7 +164,7 @@
             {
               title: 'Checker',
               align: 'center',
-              render: (h,params) => {
+              render: (h, params) => {
                 if (!params.row['Checker']) {
                   return h('div', [
                     h('Button', {
@@ -175,7 +177,8 @@
                       },
                       on: {
                         click: () => {
-                          var o = this.checkList.data.find(i => i.Component == params.row['Component'] && i['Item Number'] == params.row['Item Number'])
+                          var o = this.checkList.data.find(i => i.Component == params.row['Component'] && i[
+                            'Item Number'] == params.row['Item Number'])
                           o['Checker'] = localStorage.getItem('kittingUser')
                           var a = this.ensureId
                           this.$http.post(config.baseUrl + 'systeminfo/updatePickList', {
@@ -227,13 +230,18 @@
         editId: null,
         deleteId: null, // 要撤销的通知Id
         ensureId: null,
-        
+
         formValidate: {}, // 表单对象
         ruleValidate: { // 表单验证对象
           RequireDate: [{
             required: true,
             type: 'date',
             message: 'The Demand Date cannot be empty',
+            trigger: 'change'
+          }],
+          RequestorId: [{
+            required: true,
+            message: 'RequestorId cannot be empty',
             trigger: 'change'
           }],
           Station: [{
@@ -461,62 +469,78 @@
 
       // 提交备料信息
       submit() {
-        var o = { ...this.formValidate }
-        o.RequireDate = +new Date(o.RequireDate)
-        if (this.isEdit) {
-          o.Id = this.editId
-          this.$http.post(config.baseUrl + 'systeminfo/updateKitting', o).then(res => {
-            this.editShow = false
-            this.goeasy.publish({
-              channel: 'te2mc-update',
-              message: '请注意，有新的备料变更，' + this.formValidate.SystemSlot + ' ' + config.station.find(i => i.item == this.formValidate.Station).chinese + '需要备料了！' + 'Request change attention please! ' +  this.formValidate.SystemSlot + ' ' + config.station.find(i => i.item == this.formValidate.Station).english + ' material kitting is requested!'
-            });
-            if (res.body.Code == 200) {
-              this.$Message.success({
-                content: '修改成功！',
-                duration: 2
+        this.$refs['formValidate'].validate((valid) => {
+          if (valid) {
+            var o = { ...this.formValidate
+            }
+            o.RequireDate = +new Date(o.RequireDate)
+            if (this.isEdit) {
+              o.Id = this.editId
+              this.$http.post(config.baseUrl + 'systeminfo/updateKitting', o).then(res => {
+                this.editShow = false
+                this.goeasy.publish({
+                  channel: 'te2mc-update',
+                  message: '请注意，有新的备料变更，' + this.formValidate.SystemSlot + ' ' + config.station.find(i => i
+                      .item == this.formValidate.Station).chinese + '需要备料了！' +
+                    'Request change attention please! ' + this.formValidate.SystemSlot + ' ' + config.station
+                    .find(i => i.item == this.formValidate.Station).english +
+                    ' material kitting is requested!'
+                });
+                if (res.body.Code == 200) {
+                  this.$Message.success({
+                    content: '修改成功！',
+                    duration: 2
+                  })
+                } else {
+                  this.$Message.error({
+                    content: res.body.Message,
+                    duration: 2
+                  })
+                }
+                this.getSystemList()
               })
+              this.isEdit = false
             } else {
-              this.$Message.error({
-                content: res.body.Message,
-                duration: 2
+              this.$http.post(config.baseUrl + 'systeminfo/sendBeginEmail', o).then(res => {
+                this.editShow = false
+                this.goeasy.publish({
+                  channel: 'te2mc-inform',
+                  message: '请注意，有新的备料需求，' + this.formValidate.SystemSlot + ' ' + config.station.find(i => i
+                      .item == this.formValidate.Station).chinese + '需要备料了！' +
+                    'New request attention please! ' + this.formValidate.SystemSlot + ' ' + config.station.find(
+                      i => i.item == this.formValidate.Station).english + ' material kitting is requested!'
+                });
+                if (res.body.Code == 200) {
+                  this.$Message.success({
+                    content: '发送成功！',
+                    duration: 2
+                  })
+                } else {
+                  this.$Message.error({
+                    content: res.body.Message,
+                    duration: 2
+                  })
+                }
+                this.getSystemList()
               })
             }
-            this.getSystemList()
-          })
-          this.isEdit = false
-        } else {
-          this.$http.post(config.baseUrl + 'systeminfo/sendBeginEmail', o).then(res => {
-            this.editShow = false
-            this.goeasy.publish({
-              channel: 'te2mc-inform',
-              message: '请注意，有新的备料需求，' + this.formValidate.SystemSlot + ' ' + config.station.find(i => i.item == this.formValidate.Station).chinese + '需要备料了！' + 'New request attention please! ' +  this.formValidate.SystemSlot + ' ' + config.station.find(i => i.item == this.formValidate.Station).english + ' material kitting is requested!'
-            });
-            if (res.body.Code == 200) {
-              this.$Message.success({
-                content: '发送成功！',
-                duration: 2
-              })
-            } else {
-              this.$Message.error({
-                content: res.body.Message,
-                duration: 2
-              })
-            }
-            this.getSystemList()
-          })
-        }
+          }
+        })
       },
 
       // 撤销发送请求
       deleteHandler() {
-        this.$http.get(config.baseUrl + 'systeminfo/sendDeleteEmail?id=' + this.deleteId + '&slot=' + this.originalData.find(i => i.Id == this.deleteId).SystemSlot + '&station=' + this.originalData.find(i => i.Id == this.deleteId).Station).then(res => {
+        this.$http.get(config.baseUrl + 'systeminfo/sendDeleteEmail?id=' + this.deleteId + '&slot=' + this.originalData
+          .find(i => i.Id == this.deleteId).SystemSlot + '&station=' + this.originalData.find(i => i.Id == this.deleteId)
+          .Station).then(res => {
           this.deleteShow = false
           var systemSlot = this.originalData.find(i => i.Id == this.deleteId).SystemSlot
           var station = this.originalData.find(i => i.Id == this.deleteId).Station
           this.goeasy.publish({
             channel: 'te2mc-revoke',
-            message: '请注意，有备料变更，' + systemSlot + '撤销' + config.station.find(i => i.item == station).chinese + '备料！' + 'Request change attention please! ' + systemSlot + ' ' + config.station.find(i => i.item == station).english + ' material request was canceled!'
+            message: '请注意，有备料变更，' + systemSlot + '撤销' + config.station.find(i => i.item == station).chinese +
+              '备料！' + 'Request change attention please! ' + systemSlot + ' ' + config.station.find(i => i.item ==
+                station).english + ' material request was canceled!'
           });
           if (res.body.Code == 200) {
             this.$Message.success({
@@ -536,14 +560,18 @@
       // 确认收料的方法
       ensureHandler() {
         if (this.checkList.data.every(i => i.Checker)) {
-          this.$http.get(config.baseUrl + 'systeminfo/sendEnsureEmail?id=' + this.ensureId + '&slot=' + this.originalData.find(i => i.Id == this.ensureId).SystemSlot + '&station=' + this.originalData.find(i => i.Id == this.ensureId).Station).then(res => {
+          this.$http.get(config.baseUrl + 'systeminfo/sendEnsureEmail?id=' + this.ensureId + '&slot=' + this.originalData
+            .find(i => i.Id == this.ensureId).SystemSlot + '&station=' + this.originalData.find(i => i.Id == this.ensureId)
+            .Station).then(res => {
             this.$http.get(config.baseUrl + 'rack/outrack?kittingId=' + this.ensureId).then(res => {
               var systemSlot = this.originalData.find(i => i.Id == this.ensureId).SystemSlot
               var station = this.originalData.find(i => i.Id == this.ensureId).Station
               this.ensureShow = false
               this.goeasy.publish({
                 channel: 'te2mc-ensure',
-                message: systemSlot + ' ' + config.station.find(i => i.item == station).chinese + '备料已完成！' + systemSlot + ' ' + config.station.find(i => i.item == station).english + ' material kitting completed!'
+                message: systemSlot + ' ' + config.station.find(i => i.item == station).chinese + '备料已完成！' +
+                  systemSlot + ' ' + config.station.find(i => i.item == station).english +
+                  ' material kitting completed!'
               });
               if (res.body.Code == 200) {
                 this.$Message.success({
@@ -559,7 +587,7 @@
               }
               this.getSystemList()
             })
-          })      
+          })
         } else {
           this.$Message.error({
             content: '收料不全，请检查',
@@ -574,7 +602,7 @@
           this.$Message.error('请输入正确的工号');
         } else {
           this.$http.get(config.baseUrl + 'user/getUserName?emp=' + this.userName).then(res => {
-            if(res.body.Data.length > 0) {
+            if (res.body.Data.length > 0) {
               localStorage.setItem('kittingUser', res.body.Data[0]['Name'])
               this.viewModal = true
               this.$Message.success('登录成功')

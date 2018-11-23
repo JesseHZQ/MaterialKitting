@@ -5,9 +5,9 @@
       <p>
         <span>BU7 Material Kitting KanBan System</span>
         <span style="float: right; margin-right: 20px; font-size: 12px;">
-          <a @click="$router.push('/')">KANBAN</a>
-          <a @click="$router.push('/te')">TE PLATFORM</a>
-          <a @click="$router.push('/mcop')">MC PLATFORM</a>
+          <a @click="$router.push('/')">KanBan</a>
+          <a @click="$router.push('/te')">Request</a>
+          <a @click="$router.push('/mcop')">Kitting</a>
         </span>
       </p>
     </div>
