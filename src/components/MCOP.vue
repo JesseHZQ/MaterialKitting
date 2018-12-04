@@ -75,7 +75,7 @@
     <!-- Multiple Assign 框 -->
     <Modal v-model="multiModal" width="945" @on-ok="finishAssign" okText="完成" title="Material Assign">
       <div class="pnwrapper" style="text-align: center;">
-        <Input ref="pninput" v-model="scanedPN" placeholder="PLEASE SCAN PN" @keyup.13.native="findPN" style="width: 80%; height: 100px;" />
+        <Input ref="pninput" v-model="scanedPN" placeholder="PLEASE SCAN PN" @keyup.enter.native="findPN" style="width: 80%; height: 100px;" />
       </div>
       <p style="font-size: 16px; font-weight: 700">{{ pastPN }}</p>
       <Table class="normal" border :columns="multiTable.column" :data="multiTable.data"></Table>
@@ -1431,6 +1431,7 @@
 
       // 扫码查找PN
       findPN() {
+        this.scanedPN = this.scanedPN[0] == 'P' ? this.scanedPN.slice(1) : this.scanedPN
         var count = 0
         this.multiTable.data.forEach(i => {
           var temp = this.generatedMultiple.find(item => item.item == i.PO)

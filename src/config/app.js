@@ -73,6 +73,7 @@ const helper = {
               that.formValidate.RequireDate = new Date();
               that.formValidate.Station = station;
               that.formValidate.SystemSlot = params.row.SystemSlot;
+              that.formValidate.Customer = params.row.Customer;
               that.formValidate.PO = params.row.PO;
               that.formValidate.RequestorId = '';
               that.formValidate.Remark = '';
