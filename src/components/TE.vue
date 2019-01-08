@@ -10,6 +10,11 @@
       </div>
     </div>
 
+    <Spin fix v-if="spinShow">
+      <Icon type="ios-loading" size=32 class="demo-spin-icon-load"></Icon>
+      <div><span style="font-size: 18px;">Loading...</span></div>
+    </Spin>
+
     <div v-for="(it, index) in AllList" :key="index">
       <Divider>{{ it.item }}</Divider>
       <div style="overflow: scroll;" class="hidebar">
@@ -19,7 +24,7 @@
           <!-- background: linear-gradient(#ffb916 , #ff8d27); 黄色 -->
 
           <Card class="ready" style="backgroundColor: #1f8300; color: #fff; position: relative;" v-for="item in it.data.filter(i => i.AssignDate && !i.EnsureDate)" :key="item.Id">
-            <p slot="title" style="color: #fff;">{{ item.SystemSlot }}</p>
+            <p slot="title" style="color: #fff;">{{ item.SystemSlot || item.Slot }}</p>
             <span slot="extra">Ready</span>
             <div style="background: #fff; color: #222;">
               <table style="text-align: left;">
@@ -39,7 +44,7 @@
             </div>
           </Card>
           <Card class="kitting" style="backgroundColor: #0254b9; color: #fff; position: relative;" v-for="item in it.data.filter(i => i.StartDate && !i.AssignDate)" :key="item.Id">
-            <p slot="title" style="color: #fff;">{{ item.SystemSlot }}</p>
+            <p slot="title" style="color: #fff;">{{ item.SystemSlot || item.Slot }}</p>
             <span slot="extra">Kitting</span>
             <div style="background: #fff; color: #222;">
               <table style="text-align: left;">
@@ -61,7 +66,7 @@
             <img v-if="index == 0" class="rank" src="../assets/imgs/top1.png" alt="">
             <img v-if="index == 1" class="rank" src="../assets/imgs/top2.png" alt="">
             <img v-if="index == 2" class="rank" src="../assets/imgs/top3.png" alt="">
-            <p slot="title" style="color: #fff;">{{ item.SystemSlot }}</p>
+            <p slot="title" style="color: #fff;">{{ item.SystemSlot || item.Slot }}</p>
             <span slot="extra" class="">Not Start</span>
             <div style="background: #fff; color: #222;">
               <table style="text-align: left;">
@@ -97,6 +102,7 @@
     data() {
       return {
         tool: helper,
+        spinShow: false,
         timer: null, // 定时器Id
         table: { // 主页的所有卡片数据
           data: []
@@ -168,7 +174,7 @@
         clearInterval(this.timer)
         list.forEach(i => {
           if (!i.StartDate) {
-            i.longDate = 'No Data'
+            i.longDate = '--'
           } else {
             if (i.AssignDate) {
               i.longDate = new Date(i.AssignDate) - new Date(i.StartDate)
@@ -198,7 +204,7 @@
         this.timer = setInterval(_ => {
           list.forEach(i => {
             if (!i.StartDate) {
-              i.longDate = 'No Data'
+              i.longDate = '--'
             } else {
               if (i.AssignDate) {
                 i.longDate = new Date(i.AssignDate) - new Date(i.StartDate)
@@ -228,9 +234,13 @@
 
       // 获取对应type的系统信息
       getSystemList() {
+        this.spinShow = true
         this.$http.get(config.baseUrl + 'systeminfo/getTypedSystem?type=all').then(res => {
           this.table.data = res.body.Data || []
           this.getLongDate(this.table.data)
+          setTimeout(_ => {
+            this.spinShow = false
+          }, 500)
         })
       },
 

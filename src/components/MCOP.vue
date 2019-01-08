@@ -7,14 +7,18 @@
       <TabPane name="TE" label="TE"></TabPane>
       <TabPane name="Button Up" label="Button Up"></TabPane>
       <TabPane name="FP" label="FP"></TabPane>
-      <!-- <TabPane name="Packing" label="Packing"></TabPane> -->
     </Tabs>
 
     <Divider>TBD</Divider>
-    <Table class="normal" border size="small" :columns="table.column1" :data="waitForStart"></Table>
+    <Table :loading="table.loading" class="normal" border size="small" :columns="table.column1" :data="waitForStart"></Table>
 
-    <Divider>W/H Kitting</Divider>
-    <Table class="normal" border size="small" :columns="table.column2" :data="alreadyStart"></Table>
+    <Divider>Kitting</Divider>
+    <!-- <div style="padding: 0 0 10px 10px;">
+      <Button type="success" @click="multiAssign">MULTIPLE CHECK</Button>
+      <Button type="primary" @click="multiAssign">GENERATE UPL</Button>
+      <span style="margin-left: 10px; font-size: 14px;">已选择 {{ selectAssign.length }} 项</span>
+    </div> -->
+    <Table :loading="table.loading" class="normal" border size="small" :columns="table.column2" :data="alreadyStart"></Table>
 
     <Divider>To Be Assigned</Divider>
     <div style="padding: 0 0 10px 10px;">
@@ -22,13 +26,13 @@
       <span style="margin-left: 10px; font-size: 14px;">已选择 {{ selectAssign.length }} 项，还剩余 <a @click="rackModal = true" style="font-weight: 700; font-size: 16px;">{{
           rack.data.filter(i => !i.KittingId).length }}</a> 个库位</span>
     </div>
-    <Table class="normal" @on-selection-change="multiselect" border size="small" :columns="table.column3" :data="toBeAssigned"></Table>
+    <Table :loading="table.loading" class="normal" @on-selection-change="multiselect" border size="small" :columns="table.column3" :data="toBeAssigned"></Table>
 
     <Divider>To Be Confirmed</Divider>
-    <Table class="normal" border size="small" :columns="table.column4" :data="toBeConfirmed"></Table>
+    <Table :loading="table.loading" class="normal" border size="small" :columns="table.column4" :data="toBeConfirmed"></Table>
 
     <Divider>Completed</Divider>
-    <Table class="normal" border size="small" :columns="table.column5" :data="alreadyFinish"></Table>
+    <Table :loading="table.loading" class="normal" border size="small" :columns="table.column5" :data="alreadyFinish"></Table>
 
     <!-- 打印框 -->
     <Modal v-model="printModal" @on-ok="printpage" okText="打印" width="1060" title="PickList Info">
@@ -62,6 +66,13 @@
       <Table class="picktab" border :columns="viewList.column" :data="viewList.data"></Table>
     </Modal>
 
+    <!-- MC收料框 -->
+    <Modal v-model="mcCheckModal" width="945" @on-ok="finishCheck" title="PickList Info">
+      <div style="text-align: center; font-size: 18px; font-weight: 700; margin-bottom: 10px;">Teradyne Operation Pick
+        List</div>
+      <Table class="picktab" border :columns="mcCheckList.column" :data="mcCheckList.data"></Table>
+    </Modal>
+
     <!-- Rack框 -->
     <Modal v-model="rackModal" width="945" title="Rack Info">
       <div style="padding: 0 0 10px;">
@@ -88,6 +99,11 @@
         <Table border :columns="shortage.column" :data="item.data"></Table>
       </div>
     </Modal>
+
+    <!-- 工号登录框 -->
+    <Modal width="400" v-model="nameModal" title="Login" @on-ok="login">
+      <Input v-model="userName" placeholder="Enter your emp#" />
+    </Modal>
   </div>
 </template>
 
@@ -106,12 +122,17 @@
         generatedMultiple: [], // 整合后的批量分配数据
         newRackName: '', // 新建Rack的名字
         currentInfo: {},
+        checkId: '',
         viewModal: false,
+        mcCheckModal: false,
+        nameModal: false,
+        userName: '',
         rackModal: false,
         multiModal: false,
         printModal: false,
         shortageModal: false,
         selectAssign: [], // 多选的分配项
+        selectCheck: [], // 多选的check项
         typeName: 'all', // 查询的type名
         loading: true, // 加载picklist时候的loading效果
         goeasy: null, // goeasy对象
@@ -256,13 +277,13 @@
             },
             {
               title: 'Action',
-              width: 220,
+              width: 160,
               align: 'center',
               render: (h, params) => {
                 return h('div', [
                   h('Button', {
                     props: {
-                      type: 'success',
+                      type: 'primary',
                       size: 'small'
                     },
                     style: {
@@ -274,20 +295,6 @@
                       }
                     }
                   }, 'START'),
-                  h('Button', {
-                    props: {
-                      type: 'primary',
-                      size: 'small'
-                    },
-                    style: {
-                      marginRight: '5px'
-                    },
-                    on: {
-                      click: () => {
-                        this.printPickList(params.row)
-                      }
-                    }
-                  }, 'PRINT'),
                   h('Button', {
                     props: {
                       type: 'warning',
@@ -307,7 +314,7 @@
             }
           ],
           column2: [{
-              type: 'index',
+              type: 'selection',
               width: 60,
               align: 'center'
             },
@@ -356,24 +363,10 @@
             },
             {
               title: 'Action',
-              width: 220,
+              width: 160,
               align: 'center',
               render: (h, params) => {
                 return h('div', [
-                  h('Button', {
-                    props: {
-                      type: 'success',
-                      size: 'small'
-                    },
-                    style: {
-                      marginRight: '5px'
-                    },
-                    on: {
-                      click: () => {
-                        this.finishTask(params.row)
-                      }
-                    }
-                  }, 'FINISH'),
                   h('Button', {
                     props: {
                       type: 'primary',
@@ -384,10 +377,12 @@
                     },
                     on: {
                       click: () => {
-                        this.printPickList(params.row)
+                        this.nameModal = true
+                        this.checkId = params.row.Id
+                        this.mcCheckList.data = JSON.parse(params.row.PickList)
                       }
                     }
-                  }, 'PRINT'),
+                  }, 'CHECK'),
                   h('Button', {
                     props: {
                       type: 'warning',
@@ -436,18 +431,18 @@
               key: 'Station'
             },
             {
-              title: 'RackName',
-              align: 'center',
-              width: 120,
-              key: 'RackName'
-            },
-            {
               title: 'Demand Date',
               align: 'center',
               width: 180,
               render: (h, params) => {
                 return h('div', helper.getFormatDate(params.row.DemandDate.replace('T', ' ')))
               }
+            },
+            {
+              title: 'RackName',
+              align: 'center',
+              width: 120,
+              key: 'RackName'
             },
             {
               title: 'Remark',
@@ -462,20 +457,20 @@
             },
             {
               title: 'Action',
-              width: 220,
+              width: 160,
               align: 'center',
               render: (h, params) => {
                 if (params.row.RackName) {
                   return h('div', [
-                    h('Button', {
-                      props: {
-                        type: 'primary',
-                        size: 'small'
-                      },
-                      style: {
-                        marginRight: '5px'
-                      }
-                    }, 'PRINT'),
+                    // h('Button', {
+                    //   props: {
+                    //     type: 'primary',
+                    //     size: 'small'
+                    //   },
+                    //   style: {
+                    //     marginRight: '5px'
+                    //   }
+                    // }, 'PRINT'),
                     h('Button', {
                       props: {
                         type: 'warning',
@@ -508,15 +503,15 @@
                         marginRight: '5px'
                       }
                     }, 'ASSIGN'),
-                    h('Button', {
-                      props: {
-                        type: 'primary',
-                        size: 'small'
-                      },
-                      style: {
-                        marginRight: '5px'
-                      }
-                    }, 'PRINT'),
+                    // h('Button', {
+                    //   props: {
+                    //     type: 'primary',
+                    //     size: 'small'
+                    //   },
+                    //   style: {
+                    //     marginRight: '5px'
+                    //   }
+                    // }, 'PRINT'),
                     h('Button', {
                       props: {
                         type: 'warning',
@@ -696,51 +691,32 @@
             },
             {
               title: 'Item Number',
-              width: 80,
+              width: 100,
               align: 'center',
               key: 'Item Number'
             },
             {
-              title: 'Assy Desc',
-              align: 'center',
-              width: 90,
-              ellipsis: true,
-              key: 'Assy Description'
-            },
-            {
-              title: 'Qty',
-              width: 30,
-              align: 'center',
-              key: 'Qty'
-            },
-            {
               title: 'Component',
-              width: 80,
+              width: 100,
               align: 'center',
               key: 'Component'
             },
             {
               title: 'G',
-              width: 20,
+              width: 30,
               align: 'center',
               key: 'Group'
             },
             {
               title: 'Comp Desc',
-              width: 90,
+              width: 80,
               align: 'center',
               ellipsis: true,
               key: 'Comp Description'
             },
             {
-              title: 'Promise Date',
-              width: 70,
-              align: 'center',
-              key: 'Promise Date'
-            },
-            {
               title: 'Location',
-              width: 50,
+              width: 70,
               align: 'center',
               key: 'Location'
             },
@@ -756,8 +732,139 @@
               key: 'Extended Qty'
             },
             {
-              title: 'Ori-Box Qty',
+              title: 'OB Qty',
+              width: 50,
+              align: 'center',
+              key: 'OriginalBoxQty'
+            },
+            {
+              title: 'MC Check',
               width: 60,
+              align: 'center',
+              key: 'MC Check',
+              render: (h, params) => {
+                if (!params.row['MC Check']) {
+                  return h('div', [
+                    h('Button', {
+                      props: {
+                        type: 'warning',
+                        size: 'small'
+                      },
+                      style: {
+                        marginRight: '5px'
+                      },
+                      on: {
+                        click: () => {
+                          var o = this.mcCheckList.data.find(i => i.Component == params.row['Component'] && i[
+                            'Item Number'] == params.row['Item Number'])
+                          o['Checker'] = localStorage.getItem('kittingUser')
+                          var a = this.ensureId
+                          this.$http.post(config.baseUrl + 'systeminfo/updatePickList', {
+                            id: this.ensureId,
+                            str: JSON.stringify(this.mcCheckList.data)
+                          }).then(res => {
+                            this.mcCheckList.data.splice(0, 0)
+                            this.getSystemList()
+                          })
+                        }
+                      }
+                    }, '点击确认')
+                  ])
+                } else {
+                  return h('div', [
+                    h('span', params.row['Checker'])
+                  ])
+                }
+              }
+            },
+            {
+              title: 'Checker',
+              width: 50,
+              align: 'center',
+              key: 'Checker'
+            },
+            {
+              title: 'S Code?',
+              width: 50,
+              align: 'center',
+              key: 'S Code'
+            },
+            {
+              title: 'Packing Check',
+              width: 90,
+              align: 'center',
+              key: 'Packing Check'
+            },
+            {
+              title: 'Remark',
+              width: 50,
+              align: 'center',
+              key: 'Remark',
+              render: (h, params) => {
+                if (params.row['Remark'] == 1) {
+                  return h('Icon', {
+                    props: {
+                      type: 'md-checkmark'
+                    }
+                  })
+                }
+              }
+            }
+          ],
+        },
+        viewList: { // 预览的表格对象
+          data: [],
+          column: [{
+              title: 'Line',
+              align: 'center',
+              width: 30,
+              key: 'Line'
+            },
+            {
+              title: 'Item Number',
+              width: 100,
+              align: 'center',
+              key: 'Item Number'
+            },
+            {
+              title: 'Component',
+              width: 100,
+              align: 'center',
+              key: 'Component'
+            },
+            {
+              title: 'G',
+              width: 30,
+              align: 'center',
+              key: 'Group'
+            },
+            {
+              title: 'Comp Desc',
+              width: 80,
+              align: 'center',
+              ellipsis: true,
+              key: 'Comp Description'
+            },
+            {
+              title: 'Location',
+              width: 70,
+              align: 'center',
+              key: 'Location'
+            },
+            {
+              title: 'Category',
+              align: 'center',
+              key: 'Category'
+            },
+            {
+              title: 'E Qty',
+              width: 40,
+              align: 'center',
+              key: 'Extended Qty'
+            },
+            {
+              title: 'OB Qty',
+              width: 50,
               align: 'center',
               key: 'OriginalBoxQty'
             },
@@ -781,20 +888,19 @@
             },
             {
               title: 'Packing Check',
-              width: 80,
+              width: 90,
               align: 'center',
               key: 'Packing Check'
             },
             {
               title: 'Remark',
-              width: 40,
+              width: 50,
               align: 'center',
               key: 'Remark'
             }
           ],
         },
-        viewList: { // 预览的表格对象
-          data: [],
+        mcCheckList: { // MC check的表格对象
           column: [{
               title: 'Line',
               align: 'center',
@@ -803,51 +909,32 @@
             },
             {
               title: 'Item Number',
-              width: 80,
+              width: 100,
               align: 'center',
               key: 'Item Number'
             },
             {
-              title: 'Assy Desc',
-              align: 'center',
-              width: 60,
-              ellipsis: true,
-              key: 'Assy Description'
-            },
-            {
-              title: 'Qty',
-              width: 30,
-              align: 'center',
-              key: 'Qty'
-            },
-            {
               title: 'Component',
-              width: 80,
+              width: 100,
               align: 'center',
               key: 'Component'
             },
             {
               title: 'G',
-              width: 20,
+              width: 30,
               align: 'center',
               key: 'Group'
             },
             {
               title: 'Comp Desc',
-              width: 60,
+              width: 80,
               align: 'center',
               ellipsis: true,
               key: 'Comp Description'
             },
             {
-              title: 'Promise Date',
-              width: 70,
-              align: 'center',
-              key: 'Promise Date'
-            },
-            {
               title: 'Location',
-              width: 65,
+              width: 70,
               align: 'center',
               key: 'Location'
             },
@@ -863,29 +950,50 @@
               key: 'Extended Qty'
             },
             {
-              title: 'Ori-Box Qty',
-              width: 40,
+              title: 'OB Qty',
+              width: 50,
               align: 'center',
               key: 'OriginalBoxQty'
             },
             {
               title: 'MC Check',
-              width: 55,
+              width: 70,
               align: 'center',
               key: 'MC Check',
               render: (h, params) => {
-                if (params.row['MC Check'] == 1) {
-                  return h('Icon', {
-                    props: {
-                      type: 'md-checkmark'
-                    }
-                  })
+                if (!params.row['MC Check']) {
+                  return h('div', [
+                    h('Button', {
+                      props: {
+                        type: 'warning',
+                        size: 'small'
+                      },
+                      on: {
+                        click: () => {
+                          console.log(params.row)
+                          var o = this.mcCheckList.data.find(i => i.Component == params.row['Component'] && i['Item Number'] == params.row['Item Number'])
+                          o['MC Check'] = localStorage.getItem('kittingUser')
+                          this.$http.post(config.baseUrl + 'systeminfo/updatePickList', {
+                            id: this.checkId,
+                            str: JSON.stringify(this.mcCheckList.data)
+                          }).then(res => {
+                            this.mcCheckList.data.splice(0, 0)
+                            this.getSystemList(this.typeName)
+                          })
+                        }
+                      }
+                    }, 'Confirm')
+                  ])
+                } else {
+                  return h('div', [
+                    h('span', params.row['MC Check'])
+                  ])
                 }
               }
             },
             {
               title: 'Checker',
-              width: 45,
+              width: 50,
               align: 'center',
               key: 'Checker'
             },
@@ -897,13 +1005,13 @@
             },
             {
               title: 'Packing Check',
-              width: 40,
+              width: 90,
               align: 'center',
               key: 'Packing Check'
             },
             {
-              title: 'Assign',
-              width: 40,
+              title: 'Remark',
+              width: 50,
               align: 'center',
               key: 'Remark',
               render: (h, params) => {
@@ -917,6 +1025,7 @@
               }
             }
           ],
+          data: []
         },
         shortage: {
           column: [
@@ -1185,13 +1294,14 @@
             }
           })
           res.body.Data = res.body.Data.filter(i => {
-            return (i.Category.toUpperCase().indexOf(sta.toUpperCase()) > -1 ||
+            return (i.Category.toUpperCase().indexOf(sta.toUpperCase()) == 0 || // 2019.1.3 这里改成=0，是为了匹配以站别名开头
               i.Category.toUpperCase() == '' ||
               i.Category.toUpperCase().indexOf('MIX') > -1)
           })
           res.body.Data.forEach(i => {
             i['Promise Date'] = i['Promise Date'].toString().substr(0, 10)
           })
+          // 有Location的排在上面
           var arr1 = res.body.Data.filter(i => {
             return i.Location
           })
@@ -1527,7 +1637,51 @@
             })
           }
         })
-      }
+      },
+
+      // 登录
+      login() {
+        if (!this.userName.trim()) {
+          this.$Message.error('请输入正确的工号');
+        } else {
+          this.$http.get(config.baseUrl + 'user/getUserName?emp=' + this.userName).then(res => {
+            if (res.body.Data.length > 0) {
+              localStorage.setItem('kittingUser', res.body.Data[0]['Name'])
+              this.mcCheckModal = true
+              this.$Message.success('登录成功')
+            } else {
+              this.$Message.error('工号不存在');
+            }
+          })
+        }
+        this.userName = ''
+      },
+
+      //  MC 结束分配
+      finishCheck() {
+        if (this.mcCheckList.data.find(i => i['MC Check'] == null) || this.mcCheckList.data.find(i => i['MC Check'] == '')) {
+          this.getSystemList(this.typeName)
+          this.$Message.error({
+            content: '仓库备料缺料！',
+            duration: 2
+          })
+        } else {
+          this.$http.get(config.baseUrl + 'systeminfo/finishTask?id=' + this.checkId).then(res => {
+          if (res.body.Code == 200) {
+            this.getSystemList(this.typeName)
+            this.$Message.success({
+              content: '仓库备料成功！',
+              duration: 2
+            })
+          }
+        })
+        }
+      },
+
+      // 表格的选中事件
+      multiselect(selection) {
+        this.selectCheck = selection
+      },
     }
   }
 
@@ -1596,7 +1750,7 @@
   }
 
   /deep/ .picktab .ivu-table {
-    font-size: 10px;
+    font-size: 12px;
   }
 
   /deep/ .picktab .ivu-table td,

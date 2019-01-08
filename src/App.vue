@@ -4,7 +4,7 @@
       <img style="float: left; height: 60px; margin-left: 20px; margin-top: 10px;" src="./assets/imgs/Flex_RGB_Med_tm.png" alt="">
       <p>
         <span>BU7 Material Kitting KanBan System</span>
-        <span style="float: right; margin-right: 20px; font-size: 12px;">
+        <span style="float: right; margin-right: 20px; font-size: 1rem;">
           <a @click="$router.push('/')">KanBan</a>
           <a @click="$router.push('/te')">Request</a>
           <a @click="$router.push('/mcop')">Kitting</a>

@@ -1,7 +1,11 @@
 <template>
   <div>
-    <Table :loading="table.loading" size="small" border ref="table" :height="tableHeight" :columns="table.column" :data="table.data"></Table>
-
+    <Divider>UF</Divider>
+    <Table :loading="table.loading" size="small" border ref="table" :columns="table.column" :data="table.data.filter(i => i.SystemSlot.indexOf('UF') > -1)"></Table>
+    <Divider>IF</Divider>
+    <Table :loading="table.loading" size="small" border ref="table" :columns="table.column" :data="table.data.filter(i => i.SystemSlot.indexOf('IF') > -1)"></Table>
+    <Divider>MF</Divider>
+    <Table :loading="table.loading" size="small" border ref="table" :columns="table.column" :data="table.data.filter(i => i.SystemSlot.indexOf('MF') > -1)"></Table>
     <!-- 编辑发送通知Modal -->
     <Modal :title="'Kitting Remind - ' + formValidate.SystemSlot" :loading="remindLoading" width="400" v-model="editShow"
       class-name="vertical-center-modal" @on-ok="submit">
@@ -321,10 +325,15 @@
 
     mounted() {
       // 自适应计算表格高度
-      this.tableHeight = window.innerHeight - this.$refs.table.$el.offsetTop - 76
+      // this.tableHeight = window.innerHeight - this.$refs.table.$el.offsetTop - 56
     },
 
     created() {
+      // 配置弹出框的参数
+      this.$Message.config({
+        top: window.innerHeight / 2 - 50,
+        duration: 3
+      });
       this.initWebInfo()
       this.getSystemList()
     },
@@ -656,6 +665,20 @@
   /deep/ .picktab .ivu-table td,
   .ivu-table th {
     height: unset;
+  }
+
+  /deep/ .ivu-divider-inner-text {
+    font-size: 24px;
+    font-weight: 700;
+    padding: 10px 0;
+    background-color: #007dc1;
+    border-radius: 10px;
+    color: #fff;
+    width: 240px;
+  }
+
+  /deep/ .ivu-divider-horizontal.ivu-divider-with-text-center:after, .ivu-divider-horizontal.ivu-divider-with-text-center:before, .ivu-divider-horizontal.ivu-divider-with-text-left:after, .ivu-divider-horizontal.ivu-divider-with-text-left:before, .ivu-divider-horizontal.ivu-divider-with-text-right:after, .ivu-divider-horizontal.ivu-divider-with-text-right:before {
+    border-top: 1px dashed #007dc1;
   }
 
 </style>
