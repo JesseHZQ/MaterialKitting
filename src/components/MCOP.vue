@@ -13,16 +13,15 @@
     <Table :loading="table.loading" class="normal" border size="small" :columns="table.column1" :data="waitForStart"></Table>
 
     <Divider>Kitting</Divider>
-    <!-- <div style="padding: 0 0 10px 10px;">
-      <Button type="success" @click="multiAssign">MULTIPLE CHECK</Button>
-      <Button type="primary" @click="multiAssign">GENERATE UPL</Button>
-      <span style="margin-left: 10px; font-size: 14px;">已选择 {{ selectAssign.length }} 项</span>
-    </div> -->
-    <Table :loading="table.loading" class="normal" border size="small" :columns="table.column2" :data="alreadyStart"></Table>
+    <div style="padding: 0 0 10px 10px;">
+      <Button type="primary" @click="generateUPL" :disabled="selectUPL.length == 0">GENERATE CHECKLIST</Button>
+      <span style="margin-left: 10px; font-size: 14px;">已选择 {{ selectUPL.length }} 项</span>
+    </div>
+    <Table :loading="table.loading" class="normal" @on-selection-change="uplselect" border size="small" :columns="table.column2" :data="alreadyStart"></Table>
 
     <Divider>To Be Assigned</Divider>
     <div style="padding: 0 0 10px 10px;">
-      <Button type="success" @click="multiAssign">MULTIPLE ASSIGN</Button>
+      <Button type="success" @click="multiAssign" :disabled="selectAssign.length <= 1">MULTIPLE ASSIGN</Button>
       <span style="margin-left: 10px; font-size: 14px;">已选择 {{ selectAssign.length }} 项，还剩余 <a @click="rackModal = true" style="font-weight: 700; font-size: 16px;">{{
           rack.data.filter(i => !i.KittingId).length }}</a> 个库位</span>
     </div>
@@ -34,31 +33,6 @@
     <Divider>Completed</Divider>
     <Table :loading="table.loading" class="normal" border size="small" :columns="table.column5" :data="alreadyFinish"></Table>
 
-    <!-- 打印框 -->
-    <Modal v-model="printModal" @on-ok="printpage" okText="打印" width="1060" title="PickList Info">
-      <div id="myPrint">
-        <div style="text-align: center; font-size: 18px; font-weight: 700; margin-bottom: 10px;">Teradyne Operation
-          Pick List</div>
-        <p style="font-size: 10px;">PO: {{ pickList.data.length > 0 ? pickList.data[0].PONum : '' }}</p>
-        <p style="font-size: 10px;">
-          Supplier Note: FCT PO for Sales Order {{ pickList.data.length > 0 ? pickList.data[0].SONum : '' }}
-        </p>
-        <p style="font-size: 10px; height: 15px;">
-          <span style="float: left; width: 50%;">Customer: {{ pickList.data.length > 0 ? pickList.data[0].CustomerName
-            : '' }}</span>
-          <span style="float: right; width: 50%;">Picklist Name: {{ currentInfo.Slot + ' ' + currentInfo.Station }}</span>
-        </p>
-        <p style="font-size: 10px; height: 15px;">
-          <span style="float: left; width: 50%;">System Order: {{ currentInfo.Slot }}</span>
-          <span style="float: right; width: 50%;">Printed Time: {{ $moment().format('DD/MM/YYYY HH:mm:ss') }}</span>
-        </p>
-        <Table border :columns="pickList.column" :data="pickList.data"></Table>
-        <p>Total: {{ pickList.data.length }}</p>
-        <p style="text-align: right; padding-right: 200px; margin-top: 40px; font-size: 14px;">MC Sign: __________</p>
-        <p style="text-align: right; padding-right: 200px; margin-top: 20px; font-size: 14px;">Check Sign: __________</p>
-      </div>
-    </Modal>
-
     <!-- view框 -->
     <Modal v-model="viewModal" width="945" title="PickList Info">
       <div style="text-align: center; font-size: 18px; font-weight: 700; margin-bottom: 10px;">Teradyne Operation Pick
@@ -66,7 +40,7 @@
       <Table class="picktab" border :columns="viewList.column" :data="viewList.data"></Table>
     </Modal>
 
-    <!-- MC收料框 -->
+    <!-- MC分配确认框 -->
     <Modal v-model="mcCheckModal" width="945" @on-ok="finishCheck" title="PickList Info">
       <div style="text-align: center; font-size: 18px; font-weight: 700; margin-bottom: 10px;">Teradyne Operation Pick
         List</div>
@@ -84,7 +58,7 @@
     </Modal>
 
     <!-- Multiple Assign 框 -->
-    <Modal v-model="multiModal" width="945" @on-ok="finishAssign" okText="完成" title="Material Assign">
+    <Modal v-model="multiModal" width="945" title="Material Assign">
       <div class="pnwrapper" style="text-align: center;">
         <Input ref="pninput" v-model="scanedPN" placeholder="PLEASE SCAN PN" @keyup.enter.native="findPN" style="width: 80%; height: 100px;" />
       </div>
@@ -92,17 +66,14 @@
       <Table class="normal" border :columns="multiTable.column" :data="multiTable.data"></Table>
     </Modal>
 
-    <!-- 分配没完全框 -->
-    <Modal v-model="shortageModal" width="600" @on-ok="finishAssign" okText="完成" title="Shortage Info">
-      <div v-for="item in this.generatedMultiple" :key="item.item">
-        <p style="font-size: 16px; font-weight: 700; margin: 10px 0;">{{ item.item }}</p>
-        <Table border :columns="shortage.column" :data="item.data"></Table>
-      </div>
-    </Modal>
-
     <!-- 工号登录框 -->
     <Modal width="400" v-model="nameModal" title="Login" @on-ok="login">
       <Input v-model="userName" placeholder="Enter your emp#" />
+    </Modal>
+
+    <!-- Remark输入框 -->
+    <Modal width="400" v-model="remarkModal" title="Remark" @on-ok="inputRemark">
+      <Input v-model="remark" placeholder="Enter Remark" />
     </Modal>
   </div>
 </template>
@@ -117,26 +88,23 @@
     data() {
       return {
         tool: helper, // 引入的helper对象
+        remark: '', // 填写的remark
+        remarkModal: false, // remark框的显示
         scanedPN: '', // 扫描的PN
         pastPN: '', // 扫描之后展示在下面的PN
-        generatedMultiple: [], // 整合后的批量分配数据
         newRackName: '', // 新建Rack的名字
-        currentInfo: {},
-        checkId: '',
-        viewModal: false,
-        mcCheckModal: false,
-        nameModal: false,
-        userName: '',
-        rackModal: false,
-        multiModal: false,
-        printModal: false,
-        shortageModal: false,
+        checkId: '', // mc check的数据ID
+        viewModal: false, // view表格的显示
+        mcCheckModal: false, // mc check的显示
+        nameModal: false, // 登录框
+        userName: '', // 输入的用户名
+        rackModal: false, // rack的显示
+        multiModal: false, // 查找多个分配的显示
         selectAssign: [], // 多选的分配项
-        selectCheck: [], // 多选的check项
+        selectUPL: [], // 多选的UPL项
         typeName: 'all', // 查询的type名
         loading: true, // 加载picklist时候的loading效果
         goeasy: null, // goeasy对象
-        flag: true, // 分配库位时的节流阀
 
         rack: { // Rack增删的表
           data: [],
@@ -203,28 +171,27 @@
             }
           ]
         },
+
         multiTable: { // 多选分配的表
           data: [],
           column: [{
               title: 'RackName',
               align: 'center',
-              // width: 100,
               key: 'RackName'
             },
             {
               title: 'PO',
               align: 'center',
-              // width: 100,
               key: 'PO'
             },
             {
               title: 'QTY',
               align: 'center',
-              // width: 100,
               key: 'QTY'
             }
           ]
         },
+
         table: { // 主页的所有表格数据
           data: [],
           column1: [{
@@ -377,12 +344,10 @@
                     },
                     on: {
                       click: () => {
-                        this.nameModal = true
-                        this.checkId = params.row.Id
-                        this.mcCheckList.data = JSON.parse(params.row.PickList)
+                        this.assignMaterial(params.row)
                       }
                     }
-                  }, 'CHECK'),
+                  }, 'ASSIGN'),
                   h('Button', {
                     props: {
                       type: 'warning',
@@ -460,75 +425,38 @@
               width: 160,
               align: 'center',
               render: (h, params) => {
-                if (params.row.RackName) {
-                  return h('div', [
-                    // h('Button', {
-                    //   props: {
-                    //     type: 'primary',
-                    //     size: 'small'
-                    //   },
-                    //   style: {
-                    //     marginRight: '5px'
-                    //   }
-                    // }, 'PRINT'),
-                    h('Button', {
-                      props: {
-                        type: 'warning',
-                        size: 'small'
-                      },
-                      style: {
-                        marginRight: '5px'
-                      },
-                      on: {
-                        click: () => {
-                          this.showView(params.row)
-                        }
+                return h('div', [
+                  h('Button', {
+                    props: {
+                      type: 'primary',
+                      size: 'small'
+                    },
+                    on: {
+                      click: () => {
+                        this.nameModal = true
+                        this.checkId = params.row.Id // check的时候记录下该数据的Id
+                        this.mcCheckList.data = JSON.parse(params.row.PickList)
                       }
-                    }, 'VIEW')
-                  ])
-                } else {
-
-                  return h('div', [
-                    h('Button', {
-                      props: {
-                        type: 'success',
-                        size: 'small'
-                      },
-                      on: {
-                        click: () => {
-                          this.assignMaterial(params.row)
-                        }
-                      },
-                      style: {
-                        marginRight: '5px'
+                    },
+                    style: {
+                      marginRight: '5px'
+                    }
+                  }, 'CHECK'),
+                  h('Button', {
+                    props: {
+                      type: 'warning',
+                      size: 'small'
+                    },
+                    style: {
+                      marginRight: '5px'
+                    },
+                    on: {
+                      click: () => {
+                        this.showView(params.row)
                       }
-                    }, 'ASSIGN'),
-                    // h('Button', {
-                    //   props: {
-                    //     type: 'primary',
-                    //     size: 'small'
-                    //   },
-                    //   style: {
-                    //     marginRight: '5px'
-                    //   }
-                    // }, 'PRINT'),
-                    h('Button', {
-                      props: {
-                        type: 'warning',
-                        size: 'small'
-                      },
-                      style: {
-                        marginRight: '5px'
-                      },
-                      on: {
-                        click: () => {
-                          this.showView(params.row)
-                        }
-                      }
-                    }, 'VIEW')
-                  ])
-
-                }
+                    }
+                  }, 'VIEW')
+                ])
               }
             }
           ],
@@ -681,137 +609,7 @@
             }
           ]
         },
-        pickList: { // 打印的表格对象
-          data: [],
-          column: [{
-              title: 'Line',
-              align: 'center',
-              width: 30,
-              key: 'Line'
-            },
-            {
-              title: 'Item Number',
-              width: 100,
-              align: 'center',
-              key: 'Item Number'
-            },
-            {
-              title: 'Component',
-              width: 100,
-              align: 'center',
-              key: 'Component'
-            },
-            {
-              title: 'G',
-              width: 30,
-              align: 'center',
-              key: 'Group'
-            },
-            {
-              title: 'Comp Desc',
-              width: 80,
-              align: 'center',
-              ellipsis: true,
-              key: 'Comp Description'
-            },
-            {
-              title: 'Location',
-              width: 70,
-              align: 'center',
-              key: 'Location'
-            },
-            {
-              title: 'Category',
-              align: 'center',
-              key: 'Category'
-            },
-            {
-              title: 'E Qty',
-              width: 40,
-              align: 'center',
-              key: 'Extended Qty'
-            },
-            {
-              title: 'OB Qty',
-              width: 50,
-              align: 'center',
-              key: 'OriginalBoxQty'
-            },
-            {
-              title: 'MC Check',
-              width: 60,
-              align: 'center',
-              key: 'MC Check',
-              render: (h, params) => {
-                if (!params.row['MC Check']) {
-                  return h('div', [
-                    h('Button', {
-                      props: {
-                        type: 'warning',
-                        size: 'small'
-                      },
-                      style: {
-                        marginRight: '5px'
-                      },
-                      on: {
-                        click: () => {
-                          var o = this.mcCheckList.data.find(i => i.Component == params.row['Component'] && i[
-                            'Item Number'] == params.row['Item Number'])
-                          o['Checker'] = localStorage.getItem('kittingUser')
-                          var a = this.ensureId
-                          this.$http.post(config.baseUrl + 'systeminfo/updatePickList', {
-                            id: this.ensureId,
-                            str: JSON.stringify(this.mcCheckList.data)
-                          }).then(res => {
-                            this.mcCheckList.data.splice(0, 0)
-                            this.getSystemList()
-                          })
-                        }
-                      }
-                    }, '点击确认')
-                  ])
-                } else {
-                  return h('div', [
-                    h('span', params.row['Checker'])
-                  ])
-                }
-              }
-            },
-            {
-              title: 'Checker',
-              width: 50,
-              align: 'center',
-              key: 'Checker'
-            },
-            {
-              title: 'S Code?',
-              width: 50,
-              align: 'center',
-              key: 'S Code'
-            },
-            {
-              title: 'Packing Check',
-              width: 90,
-              align: 'center',
-              key: 'Packing Check'
-            },
-            {
-              title: 'Remark',
-              width: 50,
-              align: 'center',
-              key: 'Remark',
-              render: (h, params) => {
-                if (params.row['Remark'] == 1) {
-                  return h('Icon', {
-                    props: {
-                      type: 'md-checkmark'
-                    }
-                  })
-                }
-              }
-            }
-          ],
-        },
+
         viewList: { // 预览的表格对象
           data: [],
           column: [{
@@ -842,18 +640,20 @@
               title: 'Comp Desc',
               width: 80,
               align: 'center',
-              ellipsis: true,
+              tooltip: true,
               key: 'Comp Description'
             },
             {
               title: 'Location',
               width: 70,
               align: 'center',
+              tooltip: true,
               key: 'Location'
             },
             {
               title: 'Category',
               align: 'center',
+              tooltip: true,
               key: 'Category'
             },
             {
@@ -863,43 +663,45 @@
               key: 'Extended Qty'
             },
             {
-              title: 'OB Qty',
-              width: 50,
-              align: 'center',
-              key: 'OriginalBoxQty'
-            },
-            {
               title: 'MC Check',
-              width: 60,
+              width: 100,
               align: 'center',
               key: 'MC Check'
             },
             {
               title: 'Checker',
-              width: 50,
+              width: 100,
               align: 'center',
               key: 'Checker'
             },
             {
-              title: 'S Code?',
-              width: 50,
-              align: 'center',
-              key: 'S Code'
-            },
-            {
               title: 'Packing Check',
-              width: 90,
+              width: 100,
               align: 'center',
               key: 'Packing Check'
             },
             {
               title: 'Remark',
               width: 50,
+              tooltip: true,
               align: 'center',
-              key: 'Remark'
+              render: (h, params) => {
+                return h('div', {
+                  style: {
+                    width: '50px',
+                    height: '20px'
+                  },
+                  on: {
+                    'click': () => {
+                      this.remark = params.row.Remark
+                    }
+                  }
+                }, params.row.Remark)
+              }
             }
           ],
         },
+
         mcCheckList: { // MC check的表格对象
           column: [{
               title: 'Line',
@@ -928,19 +730,21 @@
             {
               title: 'Comp Desc',
               width: 80,
+              tooltip: true,
               align: 'center',
-              ellipsis: true,
               key: 'Comp Description'
             },
             {
               title: 'Location',
               width: 70,
               align: 'center',
+              tooltip: true,
               key: 'Location'
             },
             {
               title: 'Category',
               align: 'center',
+              tooltip: true,
               key: 'Category'
             },
             {
@@ -950,14 +754,8 @@
               key: 'Extended Qty'
             },
             {
-              title: 'OB Qty',
-              width: 50,
-              align: 'center',
-              key: 'OriginalBoxQty'
-            },
-            {
               title: 'MC Check',
-              width: 70,
+              width: 100,
               align: 'center',
               key: 'MC Check',
               render: (h, params) => {
@@ -970,11 +768,10 @@
                       },
                       on: {
                         click: () => {
-                          console.log(params.row)
-                          var o = this.mcCheckList.data.find(i => i.Component == params.row['Component'] && i['Item Number'] == params.row['Item Number'])
+                          var o = this.mcCheckList.data.find(i => i.Id == params.row['Id'])
                           o['MC Check'] = localStorage.getItem('kittingUser')
                           this.$http.post(config.baseUrl + 'systeminfo/updatePickList', {
-                            id: this.checkId,
+                            id: this.checkId, // check记录的ID
                             str: JSON.stringify(this.mcCheckList.data)
                           }).then(res => {
                             this.mcCheckList.data.splice(0, 0)
@@ -993,55 +790,25 @@
             },
             {
               title: 'Checker',
-              width: 50,
+              width: 100,
               align: 'center',
               key: 'Checker'
             },
             {
-              title: 'S Code?',
-              width: 50,
-              align: 'center',
-              key: 'S Code'
-            },
-            {
               title: 'Packing Check',
-              width: 90,
+              width: 100,
               align: 'center',
               key: 'Packing Check'
             },
             {
               title: 'Remark',
               width: 50,
+              tooltip: true,
               align: 'center',
-              key: 'Remark',
-              render: (h, params) => {
-                if (params.row['Remark'] == 1) {
-                  return h('Icon', {
-                    props: {
-                      type: 'md-checkmark'
-                    }
-                  })
-                }
-              }
+              key: 'Remark'
             }
           ],
           data: []
-        },
-        shortage: {
-          column: [
-            {
-              title: 'PN',
-              align: 'center',
-              // width: 30,
-              key: 'pn'
-            },
-            {
-              title: 'QTY',
-              // width: 80,
-              align: 'center',
-              key: 'qty'
-            }
-          ]
         }
       }
     },
@@ -1079,11 +846,15 @@
       alreadyFinish() {
         return this.table.data.filter(i => {
           return i.EnsureDate
-        })
+        }).reverse().slice(0, 10)
       }
     },
 
     created() {
+      this.$Message.config({
+        top: window.innerHeight / 2 - 50,
+        duration: 3
+      });
       this.getSystemList('all')
       this.getRackList()
       this.initWebInfo()
@@ -1196,10 +967,12 @@
           }
         });
       },
-      
+
       // 点击tab栏 加载对应的数据列表
       changeType(name) {
         this.typeName = name;
+        this.selectAssign = []
+        this.selectUPL = []
         this.getSystemList(this.typeName)
       },
 
@@ -1246,17 +1019,6 @@
         })
       },
 
-      // 浏览器打印的方法
-      printpage() {
-        var newstr = document.getElementById('myPrint').innerHTML;
-        var oldstr = document.body.innerHTML;
-        document.body.innerHTML = newstr;
-        window.print();
-        document.body.innerHTML = oldstr;
-        window.location.reload()
-        return false;
-      },
-
       // 获取pickList的方法
       getPickList(item, fn) {
         this.$Spin.show({
@@ -1283,32 +1045,18 @@
         this.$http.get(config.baseUrl + 'systeminfo/getPickList?po=' + item.PO).then(res => {
           this.$Spin.hide();
           var sta = ''
-          res.body.Data.forEach(i => {
-            if (!i.Category) {
-              i.Category = ''
-            }
-            if (item.Station == 'FP') {
-              sta = 'MC'
-            } else {
-              sta = item.Station // 11/22改的BUG 只出现FP
-            }
+          res.body.Data.forEach((i, index) => {
+            i['Promise Date'] = i['Promise Date'].toString().substr(0, 10)
+            i['Id'] = index
+            sta = item.Station == 'FP' ? 'MC' : item.Station // 11/22改的BUG 只出现FP
           })
           res.body.Data = res.body.Data.filter(i => {
             return (i.Category.toUpperCase().indexOf(sta.toUpperCase()) == 0 || // 2019.1.3 这里改成=0，是为了匹配以站别名开头
-              i.Category.toUpperCase() == '' ||
-              i.Category.toUpperCase().indexOf('MIX') > -1)
+                    i.Category.toUpperCase() == '' ||
+                    i.Category.toUpperCase().indexOf('MIX') > -1)
           })
-          res.body.Data.forEach(i => {
-            i['Promise Date'] = i['Promise Date'].toString().substr(0, 10)
-          })
-          // 有Location的排在上面
-          var arr1 = res.body.Data.filter(i => {
-            return i.Location
-          })
-          var arr2 = res.body.Data.filter(i => {
-            return !i.Location
-          })
-          res.body.Data = arr1.concat(arr2)
+
+          res.body.Data = res.body.Data.filter(i => i.Location).concat(res.body.Data.filter(i => !i.Location))
           if (fn) {
             fn(res.body.Data)
           }
@@ -1330,29 +1078,6 @@
                 this.getSystemList(this.typeName, (systemInfo) => {
                   this.viewModal = true
                   this.viewList.data = JSON.parse(systemInfo.find(i => i.Id == item.Id).PickList)
-                })
-              }
-            })
-          })
-        }
-      },
-
-      // 点击print的方法
-      printPickList(item) {
-        this.currentInfo = item;
-        if (item.PickList) {
-          this.printModal = true
-          this.pickList.data = JSON.parse(item.PickList)
-        } else {
-          this.getPickList(item, (picklist) => {
-            this.$http.post(config.baseUrl + 'systeminfo/updatePickList', {
-              id: item.Id,
-              str: JSON.stringify(picklist)
-            }).then(res => {
-              if (res.body.Code == 200) {
-                this.getSystemList(this.typeName, (systemInfo) => {
-                  this.printModal = true
-                  this.pickList.data = JSON.parse(systemInfo.find(i => i.Id == item.Id).PickList)
                 })
               }
             })
@@ -1386,40 +1111,33 @@
 
       // 点击assign时的事件
       assignMaterial(item) {
-        this.flag = true
         this.getRackList((racklist) => {
+          var flag = true
           racklist.forEach(i => {
-            if (this.flag) {
-              if (!i.KittingId) {
-                this.flag = false
-                this.$http.get(config.baseUrl + `rack/inrack?rackId=${i.Id}&kittingId=${item.Id}&rackName=${i.RackName}`).then(res => {
-                  if (res.body.Code == 200) {
-                    this.getSystemList(this.typeName, (systemInfo) => {
-                      var picklist = JSON.parse(systemInfo.find(itemR => itemR.Id == item.Id).PickList)
-                      picklist.forEach(item => {
-                        item.Remark = 1
-                      })
-                      this.$http.post(config.baseUrl + 'systeminfo/updatePickList', {
-                        id: item.Id,
-                        str: JSON.stringify(picklist)
-                      }).then(res => {
-                        this.$Message.success({
-                          content: '分配成功！分配到 ' + i.RackName + ' 上',
-                          duration: 2
-                        })
-                        this.goeasy.publish({
-                          channel: 'mc2te-finish',
-                          message: '请注意，' + item.SystemSlot + ' ' + config.station.find(i => i.item == item.Station).chinese + '备料已经就绪，请及时到' + i.RackName + '取料！' + ' Attention please! ' + item.SystemSlot + ' ' + config.station.find(i => i.item == item.Station).english + ' material is ready! '
-                        });
-                        this.getSystemList(this.typeName)
-                        this.getRackList();
-                      })
-                    })
-                  }
-                })
-              }
+            if (!i.KittingId) {
+              flag = false
+              this.$http.get(config.baseUrl + `rack/inrack?rackId=${i.Id}&kittingId=${item.Id}&rackName=${i.RackName}`).then(res => {
+                if (res.body.Code == 200) {
+                  this.$Message.success({
+                    content: '分配成功！分配到 ' + i.RackName + ' 上',
+                    duration: 2
+                  })
+                  // this.goeasy.publish({
+                  //   channel: 'mc2te-finish',
+                  //   message: '请注意，' + item.SystemSlot + ' ' + config.station.find(i => i.item == item.Station).chinese + '备料已经就绪，请及时到' + i.RackName + '取料！' + ' Attention please! ' + item.SystemSlot + ' ' + config.station.find(i => i.item == item.Station).english + ' material is ready! '
+                  // });
+                  this.getSystemList(this.typeName)
+                  this.getRackList();
+                }
+              })
             }
           })
+          if (flag) {
+            this.$Message.error({
+              content: 'Rack已满！',
+              duration: 2
+            })
+          }
         })
       },
 
@@ -1430,172 +1148,25 @@
 
       // 批量分配
       multiAssign() {
-        // 还原数据
-        debugger
-        this.scanedPN = ''
-        this.multiTable.data = []
-        this.multiTable.data.splice(0, 0)
-        this.generatedMultiple = []
-        this.pastPN = ''
-        // 如果多选少于两个，提示错误
-        if (this.selectAssign.length < 2) {
-          this.$Message.error({
-            content: '请至少选择两个PO',
-            duration: 2
-          })
-        } else {
-          // 如果多选的每个都有RackName 则开始整合数据并进行扫码分配
-          if (this.selectAssign.every(i => i.RackName)) {
-            this.multiModal = true
-            this.$refs['pninput'].$refs['input'].autofocus = true
-            this.multiTable.data = this.selectAssign
-            this.multiTable.data.forEach(i => {
-              var arr = []
-              JSON.parse(i.PickList).forEach(item => {
-                if (!item.Remark) {
-                  let temp = arr.find(ii => ii.pn == item.Component)
-                  if (temp) {
-                    temp.qty = +temp.qty + +item['Extended Qty']
-                  } else {
-                    arr.push({
-                      pn: item.Component,
-                      qty: +item['Extended Qty']
-                    })
-                  }
-                }
-              })
-              this.generatedMultiple.push({
-                item: i.PO,
-                data: arr
-              })
-            })
-          } else {
-            // 如果不是每个都有 但是有的话 提示错误
-            if (this.selectAssign.find(i => i.RackName)) {
-              this.$Message.error({
-                content: '所选项已分配库位',
-                duration: 2
-              })
-            } else {
-              // 如果选的都没分配，则一个一个进行分配，分配完进入扫码分配
-              this.$http.get(config.baseUrl + 'rack/getRack').then(res => {
-                if (res.body.Code == 200) {
-                  this.rack.data = res.body.Data
-                  this.selectAssign.forEach(item => {
-                    this.flag = true
-                    this.rack.data.forEach(i => {
-                      if (this.flag) {
-                        if (!i.KittingId) {
-                          this.flag = false
-                          i.KittingId = item.Id
-                          this.multiTable.data.push({
-                            rackId: i.Id,
-                            kittingId: item.Id,
-                            ...item,
-                            RackName: i.RackName
-                          })
-                        }
-                      }
-                    })
-                  })
-                  this.$http.post(config.baseUrl + 'rack/multipleinrack', {
-                    arr: this.multiTable.data
-                  }).then(res => {
-                    if (res.body.Code == 200) {
-                      this.$Message.success({
-                        content: '分配成功！',
-                        duration: 2
-                      })
-                      this.multiModal = true
-                      this.$refs['pninput'].$refs['input'].autofocus = true
-                      this.multiTable.data.forEach(i => {
-                        var arr = []
-                        JSON.parse(i.PickList).forEach(item => {
-                          let temp = arr.find(ii => ii.pn == item.Component)
-                          if (temp) {
-                            temp.qty = +temp.qty + +item['Extended Qty']
-                          } else {
-                            arr.push({
-                              pn: item.Component,
-                              qty: +item['Extended Qty']
-                            })
-                          }
-                        })
-                        this.generatedMultiple.push({
-                          item: i.PO,
-                          data: arr
-                        })
-                      })
-                      this.selectAssign = []
-                      // 更新rack和kitting的信息
-                      this.getSystemList(this.typeName)
-                      this.getRackList();
-                    }
-                  })
-                }
-              })
-            }
-          }
-        }
+        this.multiTable.data = this.selectAssign
+        this.multiModal = true
       },
 
       // 扫码查找PN
       findPN() {
-        this.scanedPN = this.scanedPN[0] == 'P' ? this.scanedPN.slice(1) : this.scanedPN
-        var count = 0
-        this.multiTable.data.forEach(i => {
-          var temp = this.generatedMultiple.find(item => item.item == i.PO)
-          i.QTY = temp.data.find(i => i.pn == this.scanedPN) ? temp.data.find(i => i.pn == this.scanedPN).qty : 0
-          this.getSystemList(this.typeName, (systemInfo) => {
-            var picklist = JSON.parse(systemInfo.find(item => item.Id == i.Id).PickList)
-            picklist.forEach(item => {
-              if (item.Component == this.scanedPN) {
-                item.Remark = 1
-              }
-            })
-            this.$http.post(config.baseUrl + 'systeminfo/updatePickList', {
-              id: i.Id,
-              str: JSON.stringify(picklist)
-            }).then(res => {
-              count++
-              if (count == this.multiTable.data.length) {
-                this.$Message.success({
-                  content: this.scanedPN + '分配成功',
-                  duration: 2
-                })
-                this.multiTable.data.splice(0, 0)
-                this.pastPN = this.scanedPN;
-                this.scanedPN = ''
-                this.getSystemList(this.typeName)
-              }
-            })
+        this.selectAssign.forEach(i => {
+          var obj = JSON.parse(i.PickList)
+          i.QTY = 0
+          obj.forEach(it => {
+            if (it.Component == this.scanedPN) {
+              i.QTY = i.QTY + +it['Extended Qty']
+            }
           })
         })
-      },
-
-      // 点击完成分配
-      finishAssign() {
-        if(this.generatedMultiple.every(i => i.data.length == 0)) {
-          var arr = []
-          this.multiTable.data.forEach((e, i) => {
-            arr[i] = e.Id
-          })
-          this.$http.post(config.baseUrl + 'systeminfo/finishAssign', { arr: arr }).then(res => {
-            this.getSystemList(this.typeName)
-            this.getRackList()
-            this.goeasy.publish({
-              channel: 'mc2te-finish',
-              message: '批量分配已经完成'
-              // message: '请注意，' + item.SystemSlot + ' ' + config.station.find(i => i.item == item.Station).chinese + '备料已经就绪，请及时取料！' + ' Attention please! ' + item.SystemSlot + ' ' + config.station.find(i => i.item == item.Station).english + ' material is ready! '
-            });
-          })
-        } else {
-          this.shortageModal = true
-          this.$Message.error({
-            content: '分配暂未完成，详情见表',
-            duration: 2
-          })
-        }
+        this.pastPN = this.scanedPN;
+        this.scanedPN = ''
+        this.multiTable.data = this.selectAssign
+        this.multiTable.data.splice(0, 0)
       },
 
       // 开始备料通知
@@ -1610,30 +1181,6 @@
             this.$Message.success({
               content: '开始成功！',
               duration: 2
-            })
-          }
-        })
-      },
-
-      // 完成仓库备料通知
-      finishTask(item) {
-        this.$http.get(config.baseUrl + 'systeminfo/finishTask?id=' + item.Id).then(res => {
-          if (res.body.Code == 200) {
-            var obj = JSON.parse(item.PickList)
-            obj.forEach(i => {
-              i['MC Check'] = 1
-            })
-            this.$http.post(config.baseUrl + 'systeminfo/updatePickList', {
-              id: item.Id,
-              str: JSON.stringify(obj)
-            }).then(res => {
-              if (res.body.Code == 200) {
-                this.getSystemList(this.typeName)
-                this.$Message.success({
-                  content: '仓库备料成功！',
-                  duration: 2
-                })
-              }
             })
           }
         })
@@ -1662,15 +1209,15 @@
         if (this.mcCheckList.data.find(i => i['MC Check'] == null) || this.mcCheckList.data.find(i => i['MC Check'] == '')) {
           this.getSystemList(this.typeName)
           this.$Message.error({
-            content: '仓库备料缺料！',
+            content: '分配未完成，请检查！',
             duration: 2
           })
         } else {
-          this.$http.get(config.baseUrl + 'systeminfo/finishTask?id=' + this.checkId).then(res => {
+          this.$http.get(config.baseUrl + 'systeminfo/finishSingleAssign?id=' + this.checkId).then(res => {
           if (res.body.Code == 200) {
             this.getSystemList(this.typeName)
             this.$Message.success({
-              content: '仓库备料成功！',
+              content: '分配完成！',
               duration: 2
             })
           }
@@ -1679,9 +1226,34 @@
       },
 
       // 表格的选中事件
-      multiselect(selection) {
-        this.selectCheck = selection
+      uplselect(selection) {
+        this.selectUPL = selection
       },
+
+      // 生成UPL
+      generateUPL() {
+        var list = []
+        this.selectUPL.forEach(i => {
+          var obj = JSON.parse(i.PickList)
+          obj.forEach(it => {
+            var temp = list.find(item => item['Item Number'] == it['Item Number'] && item['Component'] == it['Component'])
+            if (temp) {
+              temp['Extended Qty'] = +temp['Extended Qty'] + +it['Extended Qty']
+            } else {
+              list.push(it)
+            }
+          })
+        })
+        this.viewList.data = list.filter(i => !i.Location)
+        this.viewList.data.splice(0, 0)
+        this.viewModal = true
+      },
+
+      // 编辑Remark
+      // TODO: 编辑Remark 要定位到该记录的ID的picklist, 明天做！
+      inputRemark() {
+
+      }
     }
   }
 

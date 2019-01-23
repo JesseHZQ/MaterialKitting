@@ -7,18 +7,17 @@
     <Divider>MF</Divider>
     <Table :loading="table.loading" size="small" border ref="table" :columns="table.column" :data="table.data.filter(i => i.SystemSlot.indexOf('MF') > -1)"></Table>
     <!-- 编辑发送通知Modal -->
-    <Modal :title="'Kitting Remind - ' + formValidate.SystemSlot" :loading="remindLoading" width="400" v-model="editShow"
+    <Modal :title="'Kitting Application - ' + formValidate.SystemSlot" width="500" v-model="editShow"
       class-name="vertical-center-modal" @on-ok="submit">
-      <Form ref="formValidate" :rules="ruleValidate" :model="formValidate" :label-width="70">
+      <Form ref="formValidate" :rules="ruleValidate" :model="formValidate" :label-width="100">
         <FormItem label="PO:">
-          <Input v-model="formValidate.PO" disabled style="width:300px" />
+          <Input v-model="formValidate.PO" disabled style="width: 370px" />
         </FormItem>
         <FormItem label="Demand Date:" prop="RequireDate">
-          <DatePicker v-model="formValidate.RequireDate" style="width:300px" show-week-numbers type="datetime"
-            placeholder="Select Demand Date"></DatePicker>
+          <DatePicker v-model="formValidate.RequireDate" style="width: 370px" show-week-numbers type="datetime"></DatePicker>
         </FormItem>
-        <FormItem label="Station:" prop="Station">
-          <Select v-model="formValidate.Station" disabled style="width:300px">
+        <FormItem label="Station:">
+          <Select v-model="formValidate.Station" disabled style="width: 370px">
             <Option value="Assy" key="1">Assy</Option>
             <Option value="TE" key="2">TE</Option>
             <Option value="Button Up" key="3">Button Up</Option>
@@ -26,15 +25,15 @@
           </Select>
         </FormItem>
         <FormItem label="Requestor ID:" prop="RequestorId">
-          <Input v-model="formValidate.RequestorId" style="width:300px" />
+          <Input v-model="formValidate.RequestorId" style="width: 370px" />
         </FormItem>
         <FormItem label="Remark:">
-          <Input v-model="formValidate.Remark" type="textarea" :autosize="{ minRows: 2,maxRows: 10 }" placeholder="Input Remark"></Input>
+          <Input v-model="formValidate.Remark" type="textarea" :autosize="{ minRows: 3,maxRows: 10 }" placeholder="Input Remark"></Input>
         </FormItem>
       </Form>
     </Modal>
 
-    <!-- 撤销确认Modal -->
+    <!-- 撤销备料确认Modal -->
     <Modal title="Warning" width="400" v-model="deleteShow" @on-ok="deleteHandler" class-name="vertical-center-modal">
       <p>确定要撤销通知吗？</p>
     </Modal>
@@ -84,58 +83,40 @@
             },
             {
               title: 'Item Number',
-              width: 80,
+              width: 100,
               align: 'center',
               key: 'Item Number'
             },
             {
-              title: 'Assy Desc',
-              align: 'center',
-              width: 60,
-              ellipsis: true,
-              key: 'Assy Description'
-            },
-            {
-              title: 'Qty',
-              width: 30,
-              align: 'center',
-              key: 'Qty'
-            },
-            {
               title: 'Component',
-              width: 80,
+              width: 100,
               align: 'center',
               key: 'Component'
             },
             {
               title: 'G',
-              width: 20,
+              width: 30,
               align: 'center',
               key: 'Group'
             },
             {
               title: 'Comp Desc',
-              width: 60,
+              width: 80,
+              tooltip: true,
               align: 'center',
-              ellipsis: true,
               key: 'Comp Description'
             },
             {
-              title: 'Promise Date',
+              title: 'Location',
               width: 70,
               align: 'center',
-              key: 'Promise Date'
-            },
-            {
-              title: 'Location',
-              width: 65,
-              align: 'center',
+              tooltip: true,
               key: 'Location'
             },
             {
               title: 'Category',
-              width: 80,
               align: 'center',
+              tooltip: true,
               key: 'Category'
             },
             {
@@ -145,28 +126,14 @@
               key: 'Extended Qty'
             },
             {
-              title: 'Ori-Box Qty',
-              width: 40,
-              align: 'center',
-              key: 'OriginalBoxQty'
-            },
-            {
               title: 'MC Check',
-              width: 55,
+              width: 100,
               align: 'center',
-              key: 'MC Check',
-              render: (h, params) => {
-                if (params.row['MC Check'] == 1) {
-                  return h('Icon', {
-                    props: {
-                      type: 'md-checkmark'
-                    }
-                  })
-                }
-              }
+              key: 'MC Check'
             },
             {
               title: 'Checker',
+              width: 100,
               align: 'center',
               render: (h, params) => {
                 if (!params.row['Checker']) {
@@ -176,13 +143,9 @@
                         type: 'warning',
                         size: 'small'
                       },
-                      style: {
-                        marginRight: '5px'
-                      },
                       on: {
                         click: () => {
-                          var o = this.checkList.data.find(i => i.Component == params.row['Component'] && i[
-                            'Item Number'] == params.row['Item Number'])
+                          var o = this.checkList.data.find(i => i.Id == params.row['Id'])
                           o['Checker'] = localStorage.getItem('kittingUser')
                           var a = this.ensureId
                           this.$http.post(config.baseUrl + 'systeminfo/updatePickList', {
@@ -205,24 +168,16 @@
             },
             {
               title: 'Packing Check',
-              width: 40,
+              width: 100,
               align: 'center',
               key: 'Packing Check'
             },
             {
-              title: 'Assign',
-              width: 40,
+              title: 'Remark',
+              width: 50,
+              tooltip: true,
               align: 'center',
-              key: 'Remark',
-              render: (h, params) => {
-                if (params.row['Remark'] == 1) {
-                  return h('Icon', {
-                    props: {
-                      type: 'md-checkmark'
-                    }
-                  })
-                }
-              }
+              key: 'Remark'
             }
           ],
         },
@@ -246,11 +201,6 @@
           RequestorId: [{
             required: true,
             message: 'RequestorId cannot be empty',
-            trigger: 'change'
-          }],
-          Station: [{
-            required: true,
-            message: 'Please choose one station',
             trigger: 'change'
           }]
         },
@@ -318,7 +268,6 @@
           loading: false
         },
         originalData: null,
-        remindLoading: true, // 发送按钮的loading状态开关
         goeasy: null // 外部websocket对象
       }
     },
@@ -651,7 +600,7 @@
   }
 
   /deep/ .picktab .ivu-table-cell {
-    padding: 8px 0;
+    padding: 3px 0;
   }
 
   /deep/ .picktab .ivu-table-small td {
@@ -659,7 +608,7 @@
   }
 
   /deep/ .picktab .ivu-table {
-    font-size: 10px;
+    font-size: 12px;
   }
 
   /deep/ .picktab .ivu-table td,
@@ -677,7 +626,12 @@
     width: 240px;
   }
 
-  /deep/ .ivu-divider-horizontal.ivu-divider-with-text-center:after, .ivu-divider-horizontal.ivu-divider-with-text-center:before, .ivu-divider-horizontal.ivu-divider-with-text-left:after, .ivu-divider-horizontal.ivu-divider-with-text-left:before, .ivu-divider-horizontal.ivu-divider-with-text-right:after, .ivu-divider-horizontal.ivu-divider-with-text-right:before {
+  /deep/ .ivu-divider-horizontal.ivu-divider-with-text-center:after,
+  .ivu-divider-horizontal.ivu-divider-with-text-center:before,
+  .ivu-divider-horizontal.ivu-divider-with-text-left:after,
+  .ivu-divider-horizontal.ivu-divider-with-text-left:before,
+  .ivu-divider-horizontal.ivu-divider-with-text-right:after,
+  .ivu-divider-horizontal.ivu-divider-with-text-right:before {
     border-top: 1px dashed #007dc1;
   }
 

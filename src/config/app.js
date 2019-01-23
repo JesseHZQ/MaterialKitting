@@ -1,6 +1,6 @@
 const config = {
-  baseUrl: 'http://10.194.51.14:3001/MaterialKitting/api/', // 服务器的接口地址
-  // baseUrl: 'http://localhost:51570/api/', // 本地调试的地址
+  // baseUrl: 'http://10.194.51.14:3001/MaterialKitting/api/', // 服务器的接口地址
+  baseUrl: 'http://localhost:51570/api/', // 本地调试的地址
 
   // 站别对应的中文名和英文名
   station: [
@@ -52,6 +52,18 @@ const helper = {
     return 'WK' + week + '.' + day + ' ' + date.substring(11)
   },
 
+  // 获取时间差 hh:mm:ss
+  getTimeDiff(t1, t2) {
+    var diff = new Date(t2) - new Date(t1)
+    var h = parseInt(diff / 1000 / 60 / 60)
+    var m = parseInt(diff / 1000 / 60 % 60)
+    var s = parseInt(diff / 1000 % 60)
+    h = h.toString().length > 1 ? h.toString() : ('0' + h.toString())
+    m = m.toString().length > 1 ? m.toString() : ('0' + m.toString())
+    s = s.toString().length > 1 ? s.toString() : ('0' + s.toString())
+    return (h + ':' + m + ':' + s)
+  },
+
   // 按钮模板
   quickGenerateButton(station, params, h, that, bool) {
     return h('div', [
@@ -100,9 +112,6 @@ const helper = {
               type: 'success',
               size: 'small'
             },
-            style: {
-              marginRight: '5px'
-            },
             on: {
               click: () => { // 点击按钮展示pickList的数据
                 that.checkList.data = JSON.parse((params.row.mt.find(i => i.station == station)).pickList)
@@ -115,17 +124,14 @@ const helper = {
         return h('div', [
           h('Button', {
             props: {
-              type: 'warning',
+              type: 'info',
               size: 'small'
-            },
-            style: {
-              marginRight: '5px'
             },
             on: {
               click: () => { // 点击出现登录按钮 然后弹出收料页面
                 that.ensureId = (params.row.mt.find(i => i.station == station)).id
                 that.checkList.data = JSON.parse((params.row.mt.find(i => i.station == station)).pickList)
-                that.nameModal = true                
+                that.nameModal = true
               }
             }
           }, '待确认收料')
@@ -136,9 +142,6 @@ const helper = {
             props: {
               type: 'warning',
               size: 'small'
-            },
-            style: {
-              marginRight: '5px'
             }
           }, '备料中...')
         ])

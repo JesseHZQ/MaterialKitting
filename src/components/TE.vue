@@ -10,19 +10,20 @@
       </div>
     </div>
 
+    <!-- 加载中 -->
     <Spin fix v-if="spinShow">
-      <Icon type="ios-loading" size=32 class="demo-spin-icon-load"></Icon>
+      <Icon type="logo-apple" size=32 class="demo-spin-icon-load"/>
+      <!-- <Icon type="ios-loading" size=32 class="demo-spin-icon-load"></Icon> -->
       <div><span style="font-size: 18px;">Loading...</span></div>
     </Spin>
 
+    <!-- background: linear-gradient(#73f36e , #3ca248); 绿色 -->
+    <!-- background: linear-gradient(#6cd1ff , #0fa5e8); 蓝色 -->
+    <!-- background: linear-gradient(#ffb916 , #ff8d27); 黄色 -->
     <div v-for="(it, index) in AllList" :key="index">
       <Divider>{{ it.item }}</Divider>
       <div style="overflow: scroll;" class="hidebar">
         <div :style="{ width: it.width }" style="padding-top: 10px;">
-          <!-- background: linear-gradient(#73f36e , #3ca248); 绿色 -->
-          <!-- background: linear-gradient(#6cd1ff , #0fa5e8); 蓝色 -->
-          <!-- background: linear-gradient(#ffb916 , #ff8d27); 黄色 -->
-
           <Card class="ready" style="backgroundColor: #1f8300; color: #fff; position: relative;" v-for="item in it.data.filter(i => i.AssignDate && !i.EnsureDate)" :key="item.Id">
             <p slot="title" style="color: #fff;">{{ item.SystemSlot || item.Slot }}</p>
             <span slot="extra">Ready</span>
@@ -57,8 +58,8 @@
                   <td>{{ item.DemandDate ? tool.getFormatDate(item.DemandDate) : 'No Data' }}</td>
                 </tr>
               </table>
-              <Tooltip placement="top" :content="item.longDate" style="width: 100%; z-index=999">
-                <Progress :percent="parseFloat((item.djs / 216000).toFixed(2)) > 100 ? 100 : parseFloat((item.djs / 216000).toFixed(2))" />
+              <Tooltip placement="top" :content="'Duration: ' + item.longDate" style="width: 100%; z-index=999">
+                <Progress :percent="parseFloat((item.djs / 216000).toFixed(2)) > 100 ? 101 : parseFloat((item.djs / 216000).toFixed(2))" :status="parseFloat((item.djs / 216000).toFixed(2)) > 100 ? 'wrong' : 'active'" />
               </Tooltip>
             </div>
           </Card>
@@ -103,7 +104,7 @@
       return {
         tool: helper,
         spinShow: false,
-        timer: null, // 定时器Id
+        timer: null, // 定时器Id 倒计时作用
         table: { // 主页的所有卡片数据
           data: []
         },
@@ -114,26 +115,26 @@
     computed: {
       AllList() {
         return [
-          { 
-            item: 'Option Integration', 
+          {
+            item: 'Option Integration',
             data: this.table.data.filter(i => i.Station == 'Assy'),
             width: this.table.data.filter(i => i.Station == 'Assy' && !i.EnsureDate).length * 320 + 'px'
           },
-          { 
-            item: 'System Testing', 
+          {
+            item: 'System Testing',
             data: this.table.data.filter(i => i.Station == 'TE'),
             width: this.table.data.filter(i => i.Station == 'TE' && !i.EnsureDate).length * 320 + 'px'
           },
-          { 
-            item: 'Button Up', 
+          {
+            item: 'Button Up',
             data: this.table.data.filter(i => i.Station == 'Button Up'),
             width: this.table.data.filter(i => i.Station == 'Button Up' && !i.EnsureDate).length * 320 + 'px'
           },
-          { 
-            item: 'Final Process', 
+          {
+            item: 'Final Process',
             data: this.table.data.filter(i => i.Station == 'FP'),
             width: this.table.data.filter(i => i.Station == 'FP' && !i.EnsureDate).length * 320 + 'px'
-          }, 
+          },
         ]
       }
     },
@@ -149,7 +150,7 @@
       getBaiduToken() {
         // this.$http.get(config.baseUrl + 'systeminfo/getBaiduToken').then(res => {
           // this.baiduToken = JSON.parse(res.body)['access_token']
-          this.baiduToken = '24.4428f00e8993ce422e7d567ad1111281.2592000.1544852920.282335-14547213' // 2018-11-15
+          this.baiduToken = '24.2a10754a181f3e37edb6ad14999f8178.2592000.1550794709.282335-14547213' // 2018-11-15 the server cannot connect to network, we need to get token manually
         // })
       },
 
@@ -170,36 +171,20 @@
 
       // 实现计时功能
       getLongDate(list) {
-        var that = this;
         clearInterval(this.timer)
         list.forEach(i => {
           if (!i.StartDate) {
             i.longDate = '--'
           } else {
             if (i.AssignDate) {
-              i.longDate = new Date(i.AssignDate) - new Date(i.StartDate)
-              var h = parseInt(i.longDate / 1000 / 60 / 60)
-              var m = parseInt(i.longDate / 1000 / 60 % 60)
-              var s = parseInt(i.longDate / 1000 % 60)
-              h = h.toString().length > 1 ? h.toString() : ('0' + h.toString())
-              m = m.toString().length > 1 ? m.toString() : ('0' + m.toString())
-              s = s.toString().length > 1 ? s.toString() : ('0' + s.toString())
-              i.longDate = h + ':' + m + ':' + s
+              i.longDate = helper.getTimeDiff(new Date(i.StartDate), new Date(i.AssignDate))
             } else {
-              var a = this.$moment.utc()
-              var b = this.$moment.utc(i.StartDate)
-              i.djs = i.longDate = this.$moment.utc() - this.$moment.utc(this.$moment(i.StartDate))
-              var h = parseInt(i.longDate / 1000 / 60 / 60)
-              var m = parseInt(i.longDate / 1000 / 60 % 60)
-              var s = parseInt(i.longDate / 1000 % 60)
-              h = h.toString().length > 1 ? h.toString() : ('0' + h.toString())
-              m = m.toString().length > 1 ? m.toString() : ('0' + m.toString())
-              s = s.toString().length > 1 ? s.toString() : ('0' + s.toString())
-              i.longDate = h + ':' + m + ':' + s
+              i.djs = this.$moment.utc() - this.$moment.utc(this.$moment(i.StartDate))
+              i.longDate = helper.getTimeDiff(this.$moment.utc(this.$moment(i.StartDate)), this.$moment.utc())
             }
           }
         })
-        that.table.data = list;
+        this.table.data = list;
         this.table.data.splice(0, 0)
         this.timer = setInterval(_ => {
           list.forEach(i => {
@@ -207,27 +192,14 @@
               i.longDate = '--'
             } else {
               if (i.AssignDate) {
-                i.longDate = new Date(i.AssignDate) - new Date(i.StartDate)
-                var h = parseInt(i.longDate / 1000 / 60 / 60)
-                var m = parseInt(i.longDate / 1000 / 60 % 60)
-                var s = parseInt(i.longDate / 1000 % 60)
-                h = h.toString().length > 1 ? h.toString() : ('0' + h.toString())
-                m = m.toString().length > 1 ? m.toString() : ('0' + m.toString())
-                s = s.toString().length > 1 ? s.toString() : ('0' + s.toString())
-                i.longDate = h + ':' + m + ':' + s
+                i.longDate = helper.getTimeDiff(new Date(i.StartDate), new Date(i.AssignDate))
               } else {
-                i.djs = i.longDate = this.$moment.utc() - this.$moment.utc(this.$moment(i.StartDate))
-                var h = parseInt(i.longDate / 1000 / 60 / 60)
-                var m = parseInt(i.longDate / 1000 / 60 % 60)
-                var s = parseInt(i.longDate / 1000 % 60)
-                h = h.toString().length > 1 ? h.toString() : ('0' + h.toString())
-                m = m.toString().length > 1 ? m.toString() : ('0' + m.toString())
-                s = s.toString().length > 1 ? s.toString() : ('0' + s.toString())
-                i.longDate = h + ':' + m + ':' + s
+                i.djs = this.$moment.utc() - this.$moment.utc(this.$moment(i.StartDate))
+                i.longDate = helper.getTimeDiff(this.$moment.utc(this.$moment(i.StartDate)), this.$moment.utc())
               }
             }
           })
-          that.table.data = list;
+          this.table.data = list;
           this.table.data.splice(0, 0)
         }, 1000)
       },
@@ -470,7 +442,12 @@
     width: 240px;
   }
 
-  /deep/ .ivu-divider-horizontal.ivu-divider-with-text-center:after, .ivu-divider-horizontal.ivu-divider-with-text-center:before, .ivu-divider-horizontal.ivu-divider-with-text-left:after, .ivu-divider-horizontal.ivu-divider-with-text-left:before, .ivu-divider-horizontal.ivu-divider-with-text-right:after, .ivu-divider-horizontal.ivu-divider-with-text-right:before {
+  /deep/ .ivu-divider-horizontal.ivu-divider-with-text-center:after, 
+  .ivu-divider-horizontal.ivu-divider-with-text-center:before, 
+  .ivu-divider-horizontal.ivu-divider-with-text-left:after, 
+  .ivu-divider-horizontal.ivu-divider-with-text-left:before, 
+  .ivu-divider-horizontal.ivu-divider-with-text-right:after, 
+  .ivu-divider-horizontal.ivu-divider-with-text-right:before {
     border-top: 1px dashed #007dc1;
   }
 
