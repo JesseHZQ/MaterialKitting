@@ -59,7 +59,7 @@
                 </tr>
               </table>
               <Tooltip placement="top" :content="'Duration: ' + item.longDate" style="width: 100%; z-index=999">
-                <Progress :percent="parseFloat((item.djs / 216000).toFixed(2)) > 100 ? 101 : parseFloat((item.djs / 216000).toFixed(2))" :status="parseFloat((item.djs / 216000).toFixed(2)) > 100 ? 'wrong' : 'active'" />
+                <Progress :percent="parseFloat((item.djs / it.duration).toFixed(2)) > 100 ? 101 : parseFloat((item.djs / it.duration).toFixed(2))" :status="parseFloat((item.djs / it.duration).toFixed(2)) > 100 ? 'wrong' : 'active'" />
               </Tooltip>
             </div>
           </Card>
@@ -118,22 +118,26 @@
           {
             item: 'Option Integration',
             data: this.table.data.filter(i => i.Station == 'Assy'),
-            width: this.table.data.filter(i => i.Station == 'Assy' && !i.EnsureDate).length * 320 + 'px'
+            width: this.table.data.filter(i => i.Station == 'Assy' && !i.EnsureDate).length * 320 + 'px',
+            duration: 288000
           },
           {
             item: 'System Testing',
             data: this.table.data.filter(i => i.Station == 'TE'),
-            width: this.table.data.filter(i => i.Station == 'TE' && !i.EnsureDate).length * 320 + 'px'
+            width: this.table.data.filter(i => i.Station == 'TE' && !i.EnsureDate).length * 320 + 'px',
+            duration: 216000
           },
           {
             item: 'Button Up',
             data: this.table.data.filter(i => i.Station == 'Button Up'),
-            width: this.table.data.filter(i => i.Station == 'Button Up' && !i.EnsureDate).length * 320 + 'px'
+            width: this.table.data.filter(i => i.Station == 'Button Up' && !i.EnsureDate).length * 320 + 'px',
+            duration: 144000
           },
           {
             item: 'Final Process',
             data: this.table.data.filter(i => i.Station == 'FP'),
-            width: this.table.data.filter(i => i.Station == 'FP' && !i.EnsureDate).length * 320 + 'px'
+            width: this.table.data.filter(i => i.Station == 'FP' && !i.EnsureDate).length * 320 + 'px',
+            duration: 288000
           },
         ]
       }

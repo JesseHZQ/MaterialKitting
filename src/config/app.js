@@ -1,6 +1,6 @@
 const config = {
-  // baseUrl: 'http://10.194.51.14:3001/MaterialKitting/api/', // 服务器的接口地址
-  baseUrl: 'http://localhost:51570/api/', // 本地调试的地址
+  baseUrl: 'http://10.194.51.14:3001/MaterialKitting/api/', // 服务器的接口地址
+  // baseUrl: 'http://localhost:51570/api/', // 本地调试的地址
 
   // 站别对应的中文名和英文名
   station: [

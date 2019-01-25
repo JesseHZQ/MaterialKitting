@@ -19,7 +19,7 @@
     </div>
     <Table :loading="table.loading" class="normal" @on-selection-change="uplselect" border size="small" :columns="table.column2" :data="alreadyStart"></Table>
 
-    <Divider>To Be Assigned</Divider>
+    <Divider>MC Check</Divider>
     <div style="padding: 0 0 10px 10px;">
       <Button type="success" @click="multiAssign" :disabled="selectAssign.length <= 1">MULTIPLE ASSIGN</Button>
       <span style="margin-left: 10px; font-size: 14px;">已选择 {{ selectAssign.length }} 项，还剩余 <a @click="rackModal = true" style="font-weight: 700; font-size: 16px;">{{
@@ -27,7 +27,7 @@
     </div>
     <Table :loading="table.loading" class="normal" @on-selection-change="multiselect" border size="small" :columns="table.column3" :data="toBeAssigned"></Table>
 
-    <Divider>To Be Confirmed</Divider>
+    <Divider>Receiver Check</Divider>
     <Table :loading="table.loading" class="normal" border size="small" :columns="table.column4" :data="toBeConfirmed"></Table>
 
     <Divider>Completed</Divider>
@@ -49,18 +49,18 @@
 
     <!-- Rack框 -->
     <Modal v-model="rackModal" width="945" title="Rack Info">
-      <div style="padding: 0 0 10px;">
+      <!-- <div style="padding: 0 0 10px;">
         Rack Name:
         <Input v-model="newRackName" placeholder="Enter Rack Name" style="width: 120px; margin-right: 10px;" />
         <Button type="success" @click="addRack">ADD RACK</Button>
-      </div>
+      </div> -->
       <Table class="normal" border :columns="rack.column" :data="rack.data"></Table>
     </Modal>
 
     <!-- Multiple Assign 框 -->
     <Modal v-model="multiModal" width="945" title="Material Assign">
       <div class="pnwrapper" style="text-align: center;">
-        <Input ref="pninput" v-model="scanedPN" placeholder="PLEASE SCAN PN" @keyup.enter.native="findPN" style="width: 80%; height: 100px;" />
+        <Input ref="pninput" autofocus v-model="scanedPN" placeholder="PLEASE SCAN PN" @keyup.enter.native="findPN" style="width: 80%; height: 100px;" />
       </div>
       <p style="font-size: 16px; font-weight: 700">{{ pastPN }}</p>
       <Table class="normal" border :columns="multiTable.column" :data="multiTable.data"></Table>
@@ -73,7 +73,7 @@
 
     <!-- Remark输入框 -->
     <Modal width="400" v-model="remarkModal" title="Remark" @on-ok="inputRemark">
-      <Input v-model="remark" placeholder="Enter Remark" />
+      <Input ref="remarkinput" autofocus v-model="remark" placeholder="Enter Remark" />
     </Modal>
   </div>
 </template>
@@ -90,10 +90,13 @@
         tool: helper, // 引入的helper对象
         remark: '', // 填写的remark
         remarkModal: false, // remark框的显示
+        remarkPicklistId: '', // 小条记录
+        remarkId: '', // 修改remark的Id 大记录
         scanedPN: '', // 扫描的PN
         pastPN: '', // 扫描之后展示在下面的PN
         newRackName: '', // 新建Rack的名字
         checkId: '', // mc check的数据ID
+        checkItem: '', // mc check的行数据
         viewModal: false, // view表格的显示
         mcCheckModal: false, // mc check的显示
         nameModal: false, // 登录框
@@ -120,6 +123,12 @@
               key: 'RackName'
             },
             {
+              title: 'Type',
+              align: 'center',
+              // width: 100,
+              key: 'Type'
+            },
+            {
               title: 'Slot',
               // width: 80,
               align: 'center',
@@ -137,38 +146,38 @@
               align: 'center',
               key: 'Station'
             },
-            {
-              title: 'Assigned Time',
-              // width: 80,
-              align: 'center',
-              key: 'AssignDate',
-              render: (h, params) => {
-                return h('div', params.row.AssignDate ? helper.getFormatDate(params.row.AssignDate.replace('T', ' ')) : '')
-              }
-            },
-            {
-              title: 'Action',
-              width: 100,
-              align: 'center',
-              render: (h, params) => {
-                return h('div', [
-                  h('Button', {
-                    props: {
-                      type: 'error',
-                      size: 'small'
-                    },
-                    style: {
-                      marginRight: '5px'
-                    },
-                    on: {
-                      click: () => {
-                        this.deleteRack(params.row.Id)
-                      }
-                    }
-                  }, 'DELETE')
-                ])
-              }
-            }
+            // {
+            //   title: 'Assigned Time',
+            //   // width: 80,
+            //   align: 'center',
+            //   key: 'AssignDate',
+            //   render: (h, params) => {
+            //     return h('div', params.row.AssignDate ? helper.getFormatDate(params.row.AssignDate.replace('T', ' ')) : '')
+            //   }
+            // },
+            // {
+            //   title: 'Action',
+            //   width: 100,
+            //   align: 'center',
+            //   render: (h, params) => {
+            //     return h('div', [
+            //       h('Button', {
+            //         props: {
+            //           type: 'error',
+            //           size: 'small'
+            //         },
+            //         style: {
+            //           marginRight: '5px'
+            //         },
+            //         on: {
+            //           click: () => {
+            //             this.deleteRack(params.row.Id)
+            //           }
+            //         }
+            //       }, 'DELETE')
+            //     ])
+            //   }
+            // }
           ]
         },
 
@@ -434,6 +443,7 @@
                     on: {
                       click: () => {
                         this.nameModal = true
+                        this.checkItem = params.row
                         this.checkId = params.row.Id // check的时候记录下该数据的Id
                         this.mcCheckList.data = JSON.parse(params.row.PickList)
                       }
@@ -688,11 +698,13 @@
               render: (h, params) => {
                 return h('div', {
                   style: {
-                    width: '50px',
+                    // width: '50px',
                     height: '20px'
                   },
                   on: {
                     'click': () => {
+                      this.remarkPicklistId = params.row.Id
+                      this.remarkModal = true
                       this.remark = params.row.Remark
                     }
                   }
@@ -846,7 +858,7 @@
       alreadyFinish() {
         return this.table.data.filter(i => {
           return i.EnsureDate
-        }).reverse().slice(0, 10)
+        }).reverse().slice(0, 10) // 倒序取前10个
       }
     },
 
@@ -1048,6 +1060,7 @@
           res.body.Data.forEach((i, index) => {
             i['Promise Date'] = i['Promise Date'].toString().substr(0, 10)
             i['Id'] = index
+            i.Category = i.Category ? i.Category : ''
             sta = item.Station == 'FP' ? 'MC' : item.Station // 11/22改的BUG 只出现FP
           })
           res.body.Data = res.body.Data.filter(i => {
@@ -1065,6 +1078,7 @@
 
       // 点击view查看详情的方法
       showView(item) {
+        this.remarkId = item.Id
         if (item.PickList) {
           this.viewModal = true
           this.viewList.data = JSON.parse(item.PickList)
@@ -1098,11 +1112,12 @@
               str: JSON.stringify(picklist)
             }).then(res => {
               if (res.body.Code == 200) {
-                this.getSystemList(this.typeName, (systemInfo) => {
-                  this.viewModal = true
-                  this.viewList.data = JSON.parse(systemInfo.find(i => i.Id == item.Id).PickList)
-                  this.beginTask(item)
-                })
+                this.beginTask(item)
+                // this.getSystemList(this.typeName, (systemInfo) => {
+                  // this.viewModal = true
+                  // this.viewList.data = JSON.parse(systemInfo.find(i => i.Id == item.Id).PickList)
+                  // this.beginTask(item)
+                // })
               }
             })
           })
@@ -1112,24 +1127,27 @@
       // 点击assign时的事件
       assignMaterial(item) {
         this.getRackList((racklist) => {
+          racklist = racklist.filter(i => i.Type == item.Station)
           var flag = true
           racklist.forEach(i => {
-            if (!i.KittingId) {
-              flag = false
-              this.$http.get(config.baseUrl + `rack/inrack?rackId=${i.Id}&kittingId=${item.Id}&rackName=${i.RackName}`).then(res => {
-                if (res.body.Code == 200) {
-                  this.$Message.success({
-                    content: '分配成功！分配到 ' + i.RackName + ' 上',
-                    duration: 2
-                  })
-                  // this.goeasy.publish({
-                  //   channel: 'mc2te-finish',
-                  //   message: '请注意，' + item.SystemSlot + ' ' + config.station.find(i => i.item == item.Station).chinese + '备料已经就绪，请及时到' + i.RackName + '取料！' + ' Attention please! ' + item.SystemSlot + ' ' + config.station.find(i => i.item == item.Station).english + ' material is ready! '
-                  // });
-                  this.getSystemList(this.typeName)
-                  this.getRackList();
-                }
-              })
+            if (flag) {
+              if (!i.KittingId) {
+                flag = false
+                this.$http.get(config.baseUrl + `rack/inrack?rackId=${i.Id}&kittingId=${item.Id}&rackName=${i.RackName}`).then(res => {
+                  if (res.body.Code == 200) {
+                    this.$Message.success({
+                      content: '分配成功！分配到 ' + i.RackName + ' 上',
+                      duration: 2
+                    })
+                    // this.goeasy.publish({
+                    //   channel: 'mc2te-finish',
+                    //   message: '请注意，' + this.checkItem.SystemSlot + ' ' + config.station.find(i => i.item == this.checkItem.Station).chinese + '备料已经就绪，请及时到' + i.RackName + '取料！' + ' Attention please! ' + this.checkItem.SystemSlot + ' ' + config.station.find(i => i.item == this.checkItem.Station).english + ' material is ready! '
+                    // });
+                    this.getSystemList(this.typeName)
+                    this.getRackList();
+                  }
+                })
+              }
             }
           })
           if (flag) {
@@ -1154,6 +1172,7 @@
 
       // 扫码查找PN
       findPN() {
+        this.scanedPN = this.scanedPN[0].toUpperCase() == 'P' ? this.scanedPN.slice(1) : this.scanedPN
         this.selectAssign.forEach(i => {
           var obj = JSON.parse(i.PickList)
           i.QTY = 0
@@ -1209,7 +1228,7 @@
         if (this.mcCheckList.data.find(i => i['MC Check'] == null) || this.mcCheckList.data.find(i => i['MC Check'] == '')) {
           this.getSystemList(this.typeName)
           this.$Message.error({
-            content: '分配未完成，请检查！',
+            content: 'MC Check 未完成，请检查！',
             duration: 2
           })
         } else {
@@ -1217,9 +1236,13 @@
           if (res.body.Code == 200) {
             this.getSystemList(this.typeName)
             this.$Message.success({
-              content: '分配完成！',
+              content: 'MC Check 完成！',
               duration: 2
             })
+            this.goeasy.publish({
+              channel: 'mc2te-finish',
+              message: '请注意，' + this.checkItem.SystemSlot + ' ' + config.station.find(i => i.item == this.checkItem.Station).chinese + '备料已经就绪，请及时到' + this.checkItem.RackName + '取料！' + ' Attention please! ' + this.checkItem.SystemSlot + ' ' + config.station.find(i => i.item == this.checkItem.Station).english + ' material is ready! '
+            });
           }
         })
         }
@@ -1252,7 +1275,15 @@
       // 编辑Remark
       // TODO: 编辑Remark 要定位到该记录的ID的picklist, 明天做！
       inputRemark() {
-
+        var o = this.viewList.data.find(i => i.Id == this.remarkPicklistId)
+        o['Remark'] = this.remark
+        this.$http.post(config.baseUrl + 'systeminfo/updatePickList', {
+          id: this.remarkId, // check记录的ID
+          str: JSON.stringify(this.viewList.data)
+        }).then(res => {
+          this.viewList.data.splice(0, 0)
+          this.getSystemList(this.typeName)
+        })
       }
     }
   }

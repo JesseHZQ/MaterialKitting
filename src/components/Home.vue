@@ -378,14 +378,14 @@
           onMessage: message => {
             this.getSystemList()
             this.$Notice.open({
-              title: '新的备料备料通知',
+              title: '新的备料变更通知',
               desc: message.content,
               duration: 5
             });
           }
         });
 
-        // 注册接受备料通知的channel
+        // 注册确认收料通知的channel
         this.goeasy.subscribe({
           channel: 'te2mc-ensure',
           onMessage: message => {
