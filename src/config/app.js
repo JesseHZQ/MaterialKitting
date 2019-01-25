@@ -52,9 +52,35 @@ const helper = {
     return 'WK' + week + '.' + day + ' ' + date.substring(11)
   },
 
-  // 获取时间差 hh:mm:ss
   getTimeDiff(t1, t2) {
-    var diff = new Date(t2) - new Date(t1)
+    var time = ''
+    var yearT1 = new Date(t1).getFullYear();
+    var monthT1 = new Date(t1).getMonth() + 1;
+    var dayT1 = new Date(t1).getDate();
+
+    var year = new Date(t2).getFullYear();
+    var month = new Date(t2).getMonth() + 1;
+    var day = new Date(t2).getDate();
+    var hour = new Date(t2).getHours()
+    // var minute = new Date(t2).getMinutes();
+    // var second = new Date(t2).getSeconds();
+    // var ms = new Date(t2).getMilliseconds();
+    // debugger
+    if (hour >= 23) {
+      time = new Date(year, month, day, 23, 0, 0, 0)
+      return (+new Date(time) - +new Date(t1))
+    } else if (hour <= 7) {
+      time = new Date(+new Date(year, month, day, 23, 0, 0, 0) - 86400000)
+      return (+new Date(time) - +new Date(t1))
+    } else {
+      var diffDay = (+new Date(year, month, day) - +new Date(yearT1, monthT1, dayT1)) / 86400000
+      return (+new Date(t2) - +new Date(t1) - diffDay * 28800000)
+    }
+  },
+
+  // 获取时间差 hh:mm:ss
+  getDuration(diff) {
+    debugger
     var h = parseInt(diff / 1000 / 60 / 60)
     var m = parseInt(diff / 1000 / 60 % 60)
     var s = parseInt(diff / 1000 % 60)

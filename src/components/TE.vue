@@ -175,17 +175,18 @@
 
       // 实现计时功能
       getLongDate(list) {
+        debugger
         clearInterval(this.timer)
         list.forEach(i => {
           if (!i.StartDate) {
             i.longDate = '--'
           } else {
-            if (i.AssignDate) {
-              i.longDate = helper.getTimeDiff(new Date(i.StartDate), new Date(i.AssignDate))
-            } else {
-              i.djs = this.$moment.utc() - this.$moment.utc(this.$moment(i.StartDate))
-              i.longDate = helper.getTimeDiff(this.$moment.utc(this.$moment(i.StartDate)), this.$moment.utc())
-            }
+            // if (i.AssignDate) {
+            //   i.longDate = helper.getTimeDiff(new Date(i.StartDate), new Date(i.AssignDate))
+            // } else {
+              i.djs = helper.getTimeDiff(this.$moment.utc(this.$moment(i.StartDate)), this.$moment.utc())
+              i.longDate = helper.getDuration(helper.getTimeDiff(this.$moment.utc(this.$moment(i.StartDate)), this.$moment.utc()))
+            // }
           }
         })
         this.table.data = list;
@@ -195,12 +196,12 @@
             if (!i.StartDate) {
               i.longDate = '--'
             } else {
-              if (i.AssignDate) {
-                i.longDate = helper.getTimeDiff(new Date(i.StartDate), new Date(i.AssignDate))
-              } else {
-                i.djs = this.$moment.utc() - this.$moment.utc(this.$moment(i.StartDate))
-                i.longDate = helper.getTimeDiff(this.$moment.utc(this.$moment(i.StartDate)), this.$moment.utc())
-              }
+              // if (i.AssignDate) {
+              //   i.longDate = helper.getTimeDiff(new Date(i.StartDate), new Date(i.AssignDate))
+              // } else {
+                i.djs = helper.getTimeDiff(this.$moment.utc(this.$moment(i.StartDate)), this.$moment.utc())
+                i.longDate = helper.getDuration(helper.getTimeDiff(this.$moment.utc(this.$moment(i.StartDate)), this.$moment.utc()))
+              // }
             }
           })
           this.table.data = list;
