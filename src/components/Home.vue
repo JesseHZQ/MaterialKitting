@@ -39,7 +39,7 @@
     </Modal>
 
     <!-- 确认收料框 -->
-    <Modal v-model="viewModal" width="945" ok-text="收料完成" @on-ok="ensureHandler" title="Material Ensurance Info">
+    <Modal v-model="viewModal" :closable="false" :mask-closable="false" width="945" ok-text="收料完成" @on-ok="ensureHandler" title="Material Ensurance Info">
       <p>料在Rack："{{ ensureId ? originalData.find(i => i.Id == ensureId).RackName : '' }}" 上，确定备料准确无误吗？</p>
       <div style="text-align: center; font-size: 18px; font-weight: 700; margin-bottom: 10px;">Teradyne Operation Pick
         List</div>
@@ -147,14 +147,14 @@
                         click: () => {
                           var o = this.checkList.data.find(i => i.Id == params.row['Id'])
                           o['Checker'] = localStorage.getItem('kittingUser')
-                          var a = this.ensureId
-                          this.$http.post(config.baseUrl + 'systeminfo/updatePickList', {
-                            id: this.ensureId,
-                            str: JSON.stringify(this.checkList.data)
-                          }).then(res => {
+                          // var a = this.ensureId
+                          // this.$http.post(config.baseUrl + 'systeminfo/updatePickList', {
+                          //   id: this.ensureId,
+                          //   str: JSON.stringify(this.checkList.data)
+                          // }).then(res => {
                             this.checkList.data.splice(0, 0)
-                            this.getSystemList()
-                          })
+                          //   this.getSystemList()
+                          // })
                         }
                       }
                     }, '点击确认')
@@ -517,41 +517,46 @@
 
       // 确认收料的方法
       ensureHandler() {
-        if (this.checkList.data.every(i => i.Checker)) {
-          this.$http.get(config.baseUrl + 'systeminfo/sendEnsureEmail?id=' + this.ensureId + '&slot=' + this.originalData
-            .find(i => i.Id == this.ensureId).SystemSlot + '&station=' + this.originalData.find(i => i.Id == this.ensureId)
-            .Station).then(res => {
-            this.$http.get(config.baseUrl + 'rack/outrack?kittingId=' + this.ensureId).then(res => {
-              var systemSlot = this.originalData.find(i => i.Id == this.ensureId).SystemSlot
-              var station = this.originalData.find(i => i.Id == this.ensureId).Station
-              this.ensureShow = false
-              this.goeasy.publish({
-                channel: 'te2mc-ensure',
-                message: systemSlot + ' ' + config.station.find(i => i.item == station).chinese + '备料已完成！' +
-                  systemSlot + ' ' + config.station.find(i => i.item == station).english +
-                  ' material kitting completed!'
-              });
-              if (res.body.Code == 200) {
-                this.$Message.success({
-                  content: '确认收料成功！',
-                  duration: 2
-                })
-              } else {
-                this.$Message.error({
-                  content: res.body.Message,
-                  duration: 2
-                })
-                return false;
-              }
-              this.getSystemList()
+        this.$http.post(config.baseUrl + 'systeminfo/updatePickList', {
+          id: this.ensureId,
+          str: JSON.stringify(this.checkList.data)
+        }).then(res => {
+          if (this.checkList.data.every(i => i.Checker)) {
+            this.$http.get(config.baseUrl + 'systeminfo/sendEnsureEmail?id=' + this.ensureId + '&slot=' + this.originalData
+              .find(i => i.Id == this.ensureId).SystemSlot + '&station=' + this.originalData.find(i => i.Id == this.ensureId)
+              .Station).then(res => {
+              this.$http.get(config.baseUrl + 'rack/outrack?kittingId=' + this.ensureId).then(res => {
+                var systemSlot = this.originalData.find(i => i.Id == this.ensureId).SystemSlot
+                var station = this.originalData.find(i => i.Id == this.ensureId).Station
+                this.ensureShow = false
+                this.goeasy.publish({
+                  channel: 'te2mc-ensure',
+                  message: systemSlot + ' ' + config.station.find(i => i.item == station).chinese + '备料已完成！' +
+                    systemSlot + ' ' + config.station.find(i => i.item == station).english +
+                    ' material kitting completed!'
+                });
+                if (res.body.Code == 200) {
+                  this.$Message.success({
+                    content: '确认收料成功！',
+                    duration: 2
+                  })
+                } else {
+                  this.$Message.error({
+                    content: res.body.Message,
+                    duration: 2
+                  })
+                  return false;
+                }
+                this.getSystemList()
+              })
             })
-          })
-        } else {
-          this.$Message.error({
-            content: '收料不全，请检查',
-            duration: 2
-          })
-        }
+          } else {
+            this.$Message.error({
+              content: '收料不全，请检查',
+              duration: 2
+            })
+          }
+        })
       },
 
       // 登录

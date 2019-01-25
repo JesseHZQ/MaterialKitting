@@ -41,7 +41,7 @@
     </Modal>
 
     <!-- MC分配确认框 -->
-    <Modal v-model="mcCheckModal" width="945" @on-ok="finishCheck" title="PickList Info">
+    <Modal v-model="mcCheckModal" :closable="false" :mask-closable="false" width="945" @on-ok="finishCheck" title="PickList Info">
       <div style="text-align: center; font-size: 18px; font-weight: 700; margin-bottom: 10px;">Teradyne Operation Pick
         List</div>
       <Table class="picktab" border :columns="mcCheckList.column" :data="mcCheckList.data"></Table>
@@ -782,13 +782,13 @@
                         click: () => {
                           var o = this.mcCheckList.data.find(i => i.Id == params.row['Id'])
                           o['MC Check'] = localStorage.getItem('kittingUser')
-                          this.$http.post(config.baseUrl + 'systeminfo/updatePickList', {
-                            id: this.checkId, // check记录的ID
-                            str: JSON.stringify(this.mcCheckList.data)
-                          }).then(res => {
+                          // this.$http.post(config.baseUrl + 'systeminfo/updatePickList', {
+                          //   id: this.checkId, // check记录的ID
+                          //   str: JSON.stringify(this.mcCheckList.data)
+                          // }).then(res => {
                             this.mcCheckList.data.splice(0, 0)
-                            this.getSystemList(this.typeName)
-                          })
+                          //   this.getSystemList(this.typeName)
+                          // })
                         }
                       }
                     }, 'Confirm')
@@ -1225,27 +1225,32 @@
 
       //  MC 结束分配
       finishCheck() {
-        if (this.mcCheckList.data.find(i => i['MC Check'] == null) || this.mcCheckList.data.find(i => i['MC Check'] == '')) {
-          this.getSystemList(this.typeName)
-          this.$Message.error({
-            content: 'MC Check 未完成，请检查！',
-            duration: 2
-          })
-        } else {
-          this.$http.get(config.baseUrl + 'systeminfo/finishSingleAssign?id=' + this.checkId).then(res => {
-          if (res.body.Code == 200) {
+        this.$http.post(config.baseUrl + 'systeminfo/updatePickList', {
+          id: this.checkId, // check记录的ID
+          str: JSON.stringify(this.mcCheckList.data)
+        }).then(res => {
+          if (this.mcCheckList.data.find(i => i['MC Check'] == null) || this.mcCheckList.data.find(i => i['MC Check'] == '')) {
             this.getSystemList(this.typeName)
-            this.$Message.success({
-              content: 'MC Check 完成！',
+            this.$Message.error({
+              content: 'MC Check 未完成，请检查！',
               duration: 2
             })
-            this.goeasy.publish({
-              channel: 'mc2te-finish',
-              message: '请注意，' + this.checkItem.SystemSlot + ' ' + config.station.find(i => i.item == this.checkItem.Station).chinese + '备料已经就绪，请及时到' + this.checkItem.RackName + '取料！' + ' Attention please! ' + this.checkItem.SystemSlot + ' ' + config.station.find(i => i.item == this.checkItem.Station).english + ' material is ready! '
-            });
+          } else {
+            this.$http.get(config.baseUrl + 'systeminfo/finishSingleAssign?id=' + this.checkId).then(res => {
+              if (res.body.Code == 200) {
+                this.getSystemList(this.typeName)
+                this.$Message.success({
+                  content: 'MC Check 完成！',
+                  duration: 2
+                })
+                this.goeasy.publish({
+                  channel: 'mc2te-finish',
+                  message: '请注意，' + this.checkItem.SystemSlot + ' ' + config.station.find(i => i.item == this.checkItem.Station).chinese + '备料已经就绪，请及时到' + this.checkItem.RackName + '取料！' + ' Attention please! ' + this.checkItem.SystemSlot + ' ' + config.station.find(i => i.item == this.checkItem.Station).english + ' material is ready! '
+                });
+              }
+            })
           }
         })
-        }
       },
 
       // 表格的选中事件

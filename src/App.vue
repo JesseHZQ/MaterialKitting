@@ -28,6 +28,16 @@
     //     alert('为了更好的体验，请使用chrome访问')
     //   }
     // }
+    created() {
+      // this.$Notice.config({
+      //   top: 100,
+      //   duration: 3
+      // });
+      this.$Notice.info({
+        title: '版本更新说明',
+        desc: '优化了签名的速度！'
+      });
+    }
   }
 
 </script>
