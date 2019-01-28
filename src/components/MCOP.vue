@@ -63,7 +63,7 @@
         <Input ref="pninput" autofocus v-model="scanedPN" placeholder="PLEASE SCAN PN" @keyup.enter.native="findPN" style="width: 80%; height: 100px;" />
       </div>
       <p style="font-size: 16px; font-weight: 700">{{ pastPN }}</p>
-      <Table class="normal" border :columns="multiTable.column" :data="multiTable.data"></Table>
+      <Table class="normal" :row-class-name="rowClassName" border :columns="multiTable.column" :data="multiTable.data"></Table>
     </Modal>
 
     <!-- 工号登录框 -->
@@ -186,17 +186,49 @@
           column: [{
               title: 'RackName',
               align: 'center',
-              key: 'RackName'
+              key: 'RackName',
+              render: (h, params) => {
+                return h('div', {
+                  style: {
+                    'fontSize': '48px',
+                    'fontWeight': 700
+                  }
+                }, params.row.RackName)
+              },
+              renderHeader: (h, params) => {
+                return h('div', {
+                  style: {
+                    'fontSize': '48px',
+                    'fontWeight': 700
+                  }
+                }, 'Rack Name')
+              }
             },
-            {
-              title: 'PO',
-              align: 'center',
-              key: 'PO'
-            },
+            // {
+            //   title: 'PO',
+            //   align: 'center',
+            //   key: 'PO'
+            // },
             {
               title: 'QTY',
               align: 'center',
-              key: 'QTY'
+              key: 'QTY',
+              render: (h, params) => {
+                return h('div', {
+                  style: {
+                    'fontSize': '48px',
+                    'fontWeight': 700
+                  }
+                }, params.row.QTY)
+              },
+              renderHeader: (h, params) => {
+                return h('div', {
+                  style: {
+                    'fontSize': '48px',
+                    'fontWeight': 700
+                  }
+                }, 'QTY')
+              }
             }
           ]
         },
@@ -1289,6 +1321,23 @@
           this.viewList.data.splice(0, 0)
           this.getSystemList(this.typeName)
         })
+      },
+
+      rowClassName (row, index) {
+        if (index === 0) {
+          return 'r0';
+        } else if (index === 1) {
+          return 'r1';
+        } else if (index === 2) {
+          return 'r2';
+        } else if (index === 3) {
+          return 'r3';
+        } else if (index === 4) {
+          return 'r4';
+        } else if (index === 5) {
+          return 'r5';
+        }
+        return '';
       }
     }
   }
@@ -1419,7 +1468,7 @@
     font-size: 24px;
     font-weight: 700;
     padding: 10px 0;
-    background-color: #007dc1;
+    background-color: #1da9f5;
     border-radius: 10px;
     color: #fff;
     width: 240px;

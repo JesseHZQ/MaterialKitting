@@ -19,3 +19,28 @@ html::-webkit-scrollbar {
 .ivu-progress-bg {
   background-color: rgb(115, 243, 110);
 }
+
+.ivu-table .r0 td{
+  background-color: #2db7f5;
+  color: #fff;
+}
+.ivu-table .r1 td{
+  background-color: #ff6600;
+  color: #fff;
+}
+.ivu-table .r2 td {
+  background-color: #187;
+  color: #fff;
+}
+.ivu-table .r3 td {
+  background-color: rgb(115, 243, 110);
+  color: #fff;
+}
+.ivu-table .r4 td {
+  background-color: #1da9f5;
+  color: #fff;
+}
+.ivu-table .r5 td {
+  background-color: #187;
+  color: #fff;
+}

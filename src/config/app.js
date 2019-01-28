@@ -80,7 +80,6 @@ const helper = {
 
   // 获取时间差 hh:mm:ss
   getDuration(diff) {
-    debugger
     var h = parseInt(diff / 1000 / 60 / 60)
     var m = parseInt(diff / 1000 / 60 % 60)
     var s = parseInt(diff / 1000 % 60)
