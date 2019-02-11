@@ -332,7 +332,7 @@
                 }
               }
             })
-            this.table.data = tempArr
+            this.table.data = tempArr.sort((a, b) => a.ShipWeek - b.ShipWeek)
           } else {
             this.table.data = []
           }
